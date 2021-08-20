@@ -1,0 +1,26 @@
+.env
+
+# general
+_ignore*
+_seed.py
+.venv
+*.db
+
+# editors
+.idea
+.vim
+.vscode
+*.code-workspace
+
+# run
+__pycache__
+
+# test
+.coverage
+.pytest_cache
+/htmlcov
+
+# build
+*.egg-info
+/build
+/dist
