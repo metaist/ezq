@@ -4,12 +4,10 @@
 
 # native
 from dataclasses import dataclass
-from functools import partial
 from multiprocessing import Process, Queue
 from os import cpu_count
-from typing import Any, Callable, List, Iterator
+from typing import Any, Callable, List, Iterator, Union
 import queue
-import signal
 
 # pkg
 from .__about__ import (
@@ -29,43 +27,28 @@ class Msg:
 
     kind: str = ""
     data: Any = None
+    order: int = 0
 
 
-END_MSG = Msg(kind="END")
+END_MSG: Msg = Msg(kind="END")
 """Message that indicates no future messages will be sent."""
 
-IS_ALIVE = True
-"""Whether the process is alive. NOTE: Setting to True will prevent `queuer` from working."""
 
-NUM_CPUS = cpu_count() or 1
+NUM_CPUS: int = cpu_count() or 1
 """Number of CPUs on this machine."""
-
-Daemon = lambda target: Process(daemon=True, target=target)
-
-
-def stop_iter_msg():
-    """Stop `iter_msg` by setting `IS_ALIVE` to `False`."""
-    global IS_ALIVE  # pylint: disable=global-statement
-    IS_ALIVE = False
 
 
 def iter_msg(q: Queue, timeout=0.05) -> Iterator[Msg]:
-    """Yield messages for a queue.
-
-    Note, this function checks whether the global `IS_ALIVE` value is `True`. If it
-    is set to `False`, the queuer will immediately stop.
+    """Yield messages in a queue until an `END_MSG` is received.
 
     Args:
         q (Queue): queue to read from
         timeout (float, optional): time in seconds to poll the queue. Defaults to 0.05.
 
-    Returns:
-        None
-
     Yields:
-        Iterator[Msg]: message in the queue
+        Iterator[Msg]: iterate over messages in the queue
     """
-    while IS_ALIVE:
+    while True:
         try:
             msg = q.get(block=True, timeout=timeout)
             if msg.kind == END_MSG.kind:
@@ -75,63 +58,81 @@ def iter_msg(q: Queue, timeout=0.05) -> Iterator[Msg]:
             continue
 
 
-def start_processes(procs: List[Process]) -> List[Process]:
-    """Return a list of subprocesses after starting them.
+def iter_sortq(
+    q: Queue, start: int = 0, key: Callable = lambda m: m.order
+) -> Iterator[Msg]:
+    """Yield messages in a particular order.
+
+    NOTE: Message order must be monotonically increasing. If there are any gaps, messages
+    after the gap won't be yielded until the input queue ends.
 
     Args:
-        procs (List[Process]): list of subprocesses to start
+        q (Queue): queue to read from
+        start (int, optional): initial message number. Defaults to 0.
+        key (Callable, optional): custom key function. Defaults to `lambda m: m.order`.
 
-    Returns:
-        List[Process]: subprocesses that were started
+    Yields:
+        Iterator[Msg]: message yielded in the correct order
     """
-    for proc in procs:
-        proc.start()
-    return procs
+    prev = start - 1
+    waiting = []
+    for msg in iter_msg(q):
+        waiting.append(msg)
+        waiting = sorted(waiting, key=key, reverse=True)
+        while waiting and key(waiting[-1]) == prev + 1:
+            prev += 1
+            yield waiting.pop()
+
+    # input queue ended; yield any waiting messages
+    while waiting:
+        yield waiting.pop()
 
 
-def start(worker: Callable, count: int = NUM_CPUS) -> List[Process]:
-    """Start a worker as several subprocesses.
+def run(func: Callable, *args, **kwargs) -> Process:
+    """Run a function as a subprocess.
 
     Args:
-        worker (Callable): function to run in each subprocess
-        count (int, optional): number of subprocesses to start. Defaults to NUM_CPUS.
+        func (Callable): function to run in each subprocess
+        *args (Any): additional positional arguments to `func`.
+        **kwargs (Any): additional keyword arguments to `func`.
 
     Returns:
-        List[Process]: subprocesses that were started
+        Process: subprocess that was started
     """
-    return start_processes([Daemon(worker) for _ in range(count)])
+    proc = Process(daemon=True, target=func, args=args, kwargs=kwargs)
+    proc.start()
+    return proc
 
 
-def start_numbered(worker: Callable, count: int = NUM_CPUS) -> List[Process]:
-    """Start a worker and pass it its number.
-
-    This is useful, for example, when using `tqdm` and you want to set the position.
+def endq(q: Queue, count: int = 1) -> Queue:
+    """Add a message to a queue to indicate its end.
 
     Args:
-        worker (Callable): function to run in each subprocess
-            (NOTE: must take a `num` parameter of type `int`)
-        count (int, optional): number of subprocesses to start. Defaults to NUM_CPUS.
+        q (Queue): queue on which to send the message
+        count (int): number of times to send the message. Defaults to 1.
 
     Returns:
-        List[Process]: subprocesses that were started
+        Queue: queue on which to send the message
     """
-    return start_processes([Daemon(partial(worker, num=n)) for n in range(count)])
+    for _ in range(count):
+        q.put(END_MSG)
+    return q
 
 
-def wait(q: Queue, procs: List[Process]):
+def endq_and_wait(q: Queue, procs: Union[Process, List[Process]]) -> List[Process]:
     """Notify a list of processes to end and wait for them to join.
 
     Args:
-        q (Queue): queue to put the end message on
-        procs (List[Process]): processes to wait for
-    """
-    for _ in range(len(procs)):
-        q.put(END_MSG)
-    # all processes notified
+        q (Queue): subprocess input queue
+        procs (Process | List[Process]): processes to wait for
 
+    Returns:
+        List[Process]: subprocesses that ended
+    """
+    if isinstance(procs, Process):
+        procs = [procs]
+
+    endq(q, len(procs))
     for proc in procs:
         proc.join()
-    # all processes ended
-
-
-signal.signal(signal.SIGINT, stop_iter_msg)
+    return procs
