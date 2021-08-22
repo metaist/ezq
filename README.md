@@ -155,4 +155,4 @@ if __name__ == "__main__":
 
 ## License
 
-[MIT License](./LICENSE.md)
+[MIT License](https://github.com/metaist/ezq/blob/main/LICENSE.md)

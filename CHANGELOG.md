@@ -9,7 +9,20 @@ The format is based on [Keep a Changelog] and this project adheres to [Semantic 
 
 ---
 
+## [2.0.1] - 2021-08-22T20:20:53Z
+
+[2.0.1]: https://github.com/metaist/ezq/compare/2.0.0...2.0.1
+
+**Fixed**
+
+- README link to license.
+- `setup.py` to contain a better `long_description`.
+
+---
+
 ## [2.0.0] - 2021-08-22T19:56:48Z
+
+[2.0.0]: https://github.com/metaist/ezq/compare/1.0.0...2.0.0
 
 **Removed**
 
@@ -30,10 +43,10 @@ The format is based on [Keep a Changelog] and this project adheres to [Semantic 
 
 - README with more examples and key concepts.
 
-[2.0.0]: https://github.com/metaist/ezq/tags/2.0.0
+---
 
 ## [1.0.0] - 2021-08-20T19:50Z
 
-Initial release.
-
 [1.0.0]: https://github.com/metaist/ezq/commits/1.0.0
+
+Initial release.
