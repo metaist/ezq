@@ -10,7 +10,7 @@ An easy way to get started using queues and multiprocessing in python.
 pip install ezq
 ```
 
-## Quick Start
+## Examples
 
 The general idea is that you connect subprocesses (workers) with queues.
 
@@ -39,3 +39,7 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+## License
+
+[MIT License](./LICENSE.md)
