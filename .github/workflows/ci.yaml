@@ -60,8 +60,8 @@ jobs:
 
       - name: Static type check with mypy
         run: |
-          mypy src/ezq
+          mypy --install-types --non-interactive src/ezq
 
       - name: Test with pytest
         run: |
-          time pytest --cov=ezq test --cov-branch
+          PYTHONPATH=src time pytest --cov=ezq test --cov-branch
