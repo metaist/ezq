@@ -8,22 +8,44 @@ import random
 # pkg
 import ezq
 
-## iterating over queue ##
+# iterating over queue #
+
+identity = lambda x: x
+"""Returns the given argument."""
 
 
-def test_iter_msg():
+def test_iter_q():
     """Iterate over all messages."""
     num = 1000
     q = ezq.Queue()
     for _ in range(num):
-        q.put(ezq.Msg("MSG", 1))
-    ezq.endq(q)
+        ezq.put_msg(q, "MSG", 1)
 
-    total = sum(msg.data for msg in ezq.iter_msg(q))
-    assert total == num, "expect iterator to get all messages"
+    total = sum(msg.data for msg in ezq.iter_q(q))
+    assert num == total, "expect iterator to get all messages"
 
 
-def test_iter_sortq():
+def test_sortiter_sorted_list():
+    """Sort a list of sorted numbers."""
+    num = 1000
+    order = list(range(num))
+    want = order.copy()
+    got = list(ezq.sortiter(order, key=identity))
+    assert want == got, "expected numbers in order"
+
+
+def test_sortiter_random_list():
+    """Sort a list of numbers."""
+    num = 1000
+    order = list(range(num))
+    want = order.copy()
+    random.shuffle(order)
+
+    got = list(ezq.sortiter(order, key=identity))
+    assert want == got, "expected numbers in order"
+
+
+def test_sortiter_messages():
     """Sort messages in order."""
     num = 1000
     order = list(range(num))
@@ -32,14 +54,13 @@ def test_iter_sortq():
 
     q = ezq.Queue()
     for o in order:
-        q.put(ezq.Msg(order=o))
-    ezq.endq(q)
+        ezq.put_msg(q, order=o)
 
-    got = [msg.order for msg in ezq.iter_sortq(q)]
-    assert got == want, "expected ids in order"
+    got = [msg.order for msg in ezq.sortiter(ezq.iter_q(q))]
+    assert want == got, "expected ids in order"
 
 
-def test_iter_sortq_gap():
+def test_sortiter_gap():
     """Sort messages in order even if there's a gap."""
     num = 1000
     order = list(range(num - 10)) + list(range(num - 5, num))
@@ -48,14 +69,13 @@ def test_iter_sortq_gap():
 
     q = ezq.Queue()
     for o in order:
-        q.put(ezq.Msg(order=o))
-    ezq.endq(q)
+        ezq.put_msg(q, order=o)
 
-    got = [msg.order for msg in ezq.iter_sortq(q)]
-    assert got == want, "expected ids in order"
+    got = [msg.order for msg in ezq.sortiter(ezq.iter_q(q))]
+    assert want == got, "expected ids in order"
 
 
-## running subprocesses ##
+# running subprocesses #
 
 
 def msg_summer(q: ezq.Queue, n_msg: int, n_sum: int):
@@ -98,7 +118,7 @@ def test_run_one():
     worker = ezq.run(msg_summer, q, n_msg=n_msg, n_sum=n_sum)
 
     for i in range(n_msg):
-        q.put(ezq.Msg(data=i))
+        ezq.put_msg(q, data=i)
 
     ezq.endq_and_wait(q, worker)
 
@@ -112,9 +132,8 @@ def test_run_many():
     workers = [ezq.run(msg_counter, in_q, out_q, num=i) for i in range(ezq.NUM_CPUS)]
 
     for _ in range(n_msg):
-        in_q.put(ezq.Msg(data=1))
+        ezq.put_msg(in_q, data=1)
     ezq.endq_and_wait(in_q, workers)  # workers done
-    ezq.endq(out_q)  # out_q has an end
 
-    count = sum(msg.data for msg in ezq.iter_msg(out_q))
+    count = sum(msg.data for msg in ezq.iter_q(out_q))
     assert count == n_msg, f"expect {n_msg} messages"
