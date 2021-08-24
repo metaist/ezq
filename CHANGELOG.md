@@ -9,6 +9,27 @@ The format is based on [Keep a Changelog] and this project adheres to [Semantic 
 
 ---
 
+## [2.0.2] - 2021-08-24T17:25:52Z
+
+[2.0.2]: https://github.com/metaist/ezq/compare/2.0.1...2.0.2
+
+**Removed**
+
+- `count` parameter for `endq`; it was only used interally and was confusing
+
+**Changed**
+
+- `iter_msg` to handle `block` parameter
+- `iter_sortq` to be a more generic `sortiter`
+
+**Added**
+
+- [Documention](https://metaist.github.io/ezq)
+- `sortiter` which is a more general form of `iter_sortq`
+- `iter_q` for iterating over current contents of a queue
+
+---
+
 ## [2.0.1] - 2021-08-22T20:20:53Z
 
 [2.0.1]: https://github.com/metaist/ezq/compare/2.0.0...2.0.1
@@ -33,15 +54,12 @@ The format is based on [Keep a Changelog] and this project adheres to [Semantic 
 
 - `iter_msg()` no longer checks against a global `IS_ALIVE` boolean. It runs until the queue is ended or the process is killed (possibly throwing errors).
 - `wait()` is now called `endq_and_wait` to more clearly explain its function.
+- README with more examples and key concepts.
 
 **Added**
 
 - `iter_sortq()`: iterates over the contents of a queue in a sorted way. Useful for collating results in a single process at the end of a pipeline.
 - `endq()`: adds the special `END_MSG` to the queue. This makes the API cleaner in terms of ending queues that don't require waiting.
-
-**Updated**
-
-- README with more examples and key concepts.
 
 ---
 
