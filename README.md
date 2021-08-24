@@ -9,7 +9,7 @@ _Simple wrappers for python multiprocessing._
 
 [changelog]: https://github.com/metaist/ezq/blob/main/CHANGELOG.md
 [issues]: https://github.com/metaist/ezq/issues
-[documentation]: https://metaist.github.io/ezq/ezq/
+[documentation]: https://metaist.github.io/ezq/
 
 ## Why?
 
