@@ -65,3 +65,8 @@ jobs:
       - name: Test with pytest
         run: |
           PYTHONPATH=src pytest --cov=ezq test --cov-branch
+
+      - name: Build docs
+        run: |
+          pdoc --html --output-dir docs --force ezq
+          mv docs/ezq/index.html docs/index.html
