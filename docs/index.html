@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>ezq API documentation</title>
+<meta name="description" content="Simple wrapper for python multiprocessing …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Package <code>ezq</code></h1>
+</header>
+<section id="section-intro">
+<p>Simple wrapper for python multiprocessing.</p>
+<p><a href="https://github.com/metaist/ezq/actions"><img alt="Build Status" src="https://img.shields.io/github/workflow/status/metaist/ezq/CI?style=for-the-badge"></a>
+<a href="https://pypi.org/project/ezq"><img alt="ezq on PyPI" src="https://img.shields.io/pypi/v/ezq.svg?color=blue&amp;style=for-the-badge"></a></p>
+<p><a href="https://github.com/metaist/ezq/blob/main/CHANGELOG.md">Changelog</a> - <a href="https://github.com/metaist/ezq/issues">Issues</a> - <a href="https://metaist.github.io/ezq/ezq/">Documentation</a></p>
+<h2 id="why">Why?</h2>
+<p>Even though <a href="https://docs.python.org/3/library/multiprocessing.html"><code>multiprocessing</code></a> has <code>Pool</code> and <code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a></code>, it's surprisingly difficult
+to get started to do slightly more complex workflows. <code><a title="ezq" href="#ezq">ezq</a></code> makes it easy to connect subprocesses (workers) using queues.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">pip install ezq
+</code></pre>
+<h2 id="example-sum-messages">Example: Sum Messages</h2>
+<p>Here's a simple example of a worker that reads from an input queue, sums up the
+messages, and puts the result on an output queue.</p>
+<pre><code class="language-python">import ezq
+
+
+def worker(in_q, out_q):
+    &quot;&quot;&quot;Add up all the messges.&quot;&quot;&quot;
+    count = 0
+    for msg in ezq.iter_msg(in_q):
+        # you could check `msg.kind` if there's different kinds of work
+        count += msg.data
+
+    # when `in_q` is done, put the result on `out_q`
+    ezq.put_msg(out_q, data=count)
+
+
+def main():
+    &quot;&quot;&quot;Run several workers.&quot;&quot;&quot;
+    in_q = ezq.Queue()  # to send work
+    out_q = ezq.Queue()  # to get results
+
+    workers = [ezq.run(worker, in_q, out_q) for _ in range(ezq.NUM_CPUS)]
+    # workers started
+
+    for i in range(1000):
+        ezq.put_msg(in_q, data=i)  # send work
+
+    ezq.endq_and_wait(in_q, workers)
+    # all workers are done
+
+    result = sum(msg.data for msg in ezq.iter_q(out_q))
+    assert result == sum(x for x in range(1000))
+    print(result)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<h2 id="typical-worker-lifecycle">Typical worker lifecycle</h2>
+<ul>
+<li>
+<p>The main process <a href="#create-workers">creates workers</a> with <code><a title="ezq.run" href="#ezq.run">run()</a></code>.</p>
+</li>
+<li>
+<p>The main process <a href="#send-data">sends data</a> with <code><a title="ezq.put_msg" href="#ezq.put_msg">put_msg()</a></code>.</p>
+</li>
+<li>
+<p>The worker <a href="#iterate-over-messages">iterates over the queue</a> with <code><a title="ezq.iter_msg" href="#ezq.iter_msg">iter_msg()</a></code>.</p>
+</li>
+<li>
+<p>The main process <a href="#end-the-queue">ends the queue</a> with <code><a title="ezq.endq_and_wait" href="#ezq.endq_and_wait">endq_and_wait()</a></code>.</p>
+</li>
+<li>
+<p>The worker returns when it reaches the end of the queue.</p>
+</li>
+</ul>
+<h2 id="a-worker-is-just-a-function">A worker is just a function</h2>
+<p>In general, there's nothing special about a worker function, but note:</p>
+<ul>
+<li>
+<p>All arguments are passed through <code>pickle</code> first (<a href="#beware-pickle">see below</a>).</p>
+</li>
+<li>
+<p>We don't currently do anything with the return value of this function. You'll
+need an output queue to return data back to the main process.</p>
+</li>
+</ul>
+<h2 id="create-workers">Create workers</h2>
+<p>In the main process, create workers using <code><a title="ezq.run" href="#ezq.run">run()</a></code> which takes a function and
+any additional parameters. Note that <strong>workers cannot create additional workers</strong>.</p>
+<h2 id="send-data">Send data</h2>
+<p>Once you've started the workers, you send them data by calling with <code><a title="ezq.put_msg" href="#ezq.put_msg">put_msg()</a></code>
+which creates <code><a title="ezq.Msg" href="#ezq.Msg">Msg</a></code> objects and puts them in the queue. There are three
+attributes that are sent (all optional):</p>
+<ul>
+<li>
+<p><code>kind</code> - a string that indicates what kind of message it is.
+You can use this to send multiple kinds of work to the same worker.
+Note that the special <code>END</code> kind is used to indicate the end of a queue
+(that's what <code><a title="ezq.endq" href="#ezq.endq">endq()</a></code> sends).</p>
+</li>
+<li>
+<p><code>data</code> - anything that can be pickled.
+This is the data you want the worker to work on.</p>
+</li>
+<li>
+<p><code>order</code> - an integer that indicates the message order.
+This can help you reorder results or ensure that messages from a queue are
+read in a particular order (that's what <code><a title="ezq.sortiter" href="#ezq.sortiter">sortiter()</a></code> uses).</p>
+</li>
+</ul>
+<h2 id="beware-pickle">Beware <code>pickle</code></h2>
+<p>All parameters sent to workers in <code><a title="ezq.run" href="#ezq.run">run()</a></code> and any values put in queues
+using <code><a title="ezq.put_msg" href="#ezq.put_msg">put_msg()</a></code> are first passed to <code>pickle</code> by <a href="https://docs.python.org/3/library/multiprocessing.html"><code>multiprocessing</code></a>
+so anything that cannot be pickled (e.g., database connection)
+cannot be passed to workers.</p>
+<h2 id="iterate-over-messages">Iterate over messages</h2>
+<p>Inside the worker, use <code><a title="ezq.iter_msg" href="#ezq.iter_msg">iter_msg()</a></code> to iterate over the messages in the queue
+until the queue ends (<a href="#end-the-queue">see below</a>). If the messages need to be
+sorted first, wrap the call with <code><a title="ezq.sortiter" href="#ezq.sortiter">sortiter()</a></code>.</p>
+<p>If you need to read all the messages currently in the queue, you can use <code><a title="ezq.iter_q" href="#ezq.iter_q">iter_q()</a></code>
+which will immediately end the queue and return results. You can also wrap this call
+in <code><a title="ezq.sortiter" href="#ezq.sortiter">sortiter()</a></code> if you need the messages to be sorted first.</p>
+<h2 id="end-the-queue">End the queue</h2>
+<p>After the main process has sent all the data to the workers, it needs to indicate
+that there's no additional work to be done. This is done by putting a special
+<code><a title="ezq.END_MSG" href="#ezq.END_MSG">END_MSG</a></code> in the queue which is processed by <code><a title="ezq.iter_msg" href="#ezq.iter_msg">iter_msg()</a></code> and never seen by
+the workers.</p>
+<p>There are three ways a queue can be ended:</p>
+<ul>
+<li>
+<p><code><a title="ezq.endq" href="#ezq.endq">endq()</a></code> - Explicitly end a queue. You normally won't need to call this.</p>
+</li>
+<li>
+<p><code><a title="ezq.iter_q" href="#ezq.iter_q">iter_q()</a></code> - End a queue and iterate over the current messages. This is
+useful when processing an output queue back in the main process.</p>
+</li>
+<li>
+<p><code><a title="ezq.endq_and_wait" href="#ezq.endq_and_wait">endq_and_wait()</a></code> - End a queue and wait for the workers to finish. The most
+common way to end a queue. You'll need to call this before the end of your main
+process in order to get results back from all the workers.</p>
+</li>
+</ul>
+<h2 id="example-read-and-write-queues">Example: Read and Write Queues</h2>
+<p>In this example, several workers read from a queue, process data, and then write to a
+different queue that a single worker uses to print to the screen sorting the results as
+it goes along. When interfacing with a single I/O device (e.g., screen, file) we typically use a single worker to avoid clashes or overwriting.</p>
+<pre><code class="language-python">import ezq
+
+
+def printer(write_q):
+    &quot;&quot;&quot;Print results in increasing order.&quot;&quot;&quot;
+    for msg in ezq.sortiter(ezq.iter_msg(write_q)):
+        print(msg.data)
+
+
+def collatz(read_q, write_q):
+    &quot;&quot;&quot;Read numbers and compute values.&quot;&quot;&quot;
+    for msg in ezq.iter_msg(read_q):
+        num = msg.data
+        if msg.kind == &quot;EVEN&quot;:
+            ezq.put_msg(write_q, data=(num, num / 2), order=msg.order)
+        elif msg.kind == &quot;ODD&quot;:
+            ezq.put_msg(write_q, data=(num, 3 * num + 1), order=msg.order)
+
+
+def main():
+    &quot;&quot;&quot;Run several subprocesses.&quot;&quot;&quot;
+    read_q, write_q = ezq.Queue(), ezq.Queue()
+    readers = [ezq.run(collatz, read_q, write_q) for _ in range(ezq.NUM_CPUS - 1)]
+    writers = ezq.run(printer, write_q)
+
+    for i in range(40):
+        kind = &quot;EVEN&quot; if i % 2 == 0 else &quot;ODD&quot;
+        ezq.put_msg(read_q, kind=kind, data=i, order=i)
+
+    ezq.endq_and_wait(read_q, readers)
+    ezq.endq_and_wait(write_q, writers)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<h2 id="license">License</h2>
+<p><a href="https://github.com/metaist/ezq/blob/main/LICENSE.md">MIT License</a></p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">#!/usr/bin/env python
+# coding: utf-8
+&#34;&#34;&#34;Simple wrapper for python multiprocessing.
+
+.. include:: ../../README.md
+   :start-line: 4
+&#34;&#34;&#34;
+
+__all__ = (
+    &#34;Process&#34;,
+    &#34;Queue&#34;,
+    &#34;__url__&#34;,
+    &#34;__version__&#34;,
+    &#34;__pubdate__&#34;,
+    &#34;__author__&#34;,
+    &#34;__email__&#34;,
+    &#34;__copyright__&#34;,
+    &#34;__license__&#34;,
+    &#34;Msg&#34;,
+    &#34;END_MSG&#34;,
+    &#34;NUM_CPUS&#34;,
+    &#34;iter_msg&#34;,
+    &#34;iter_q&#34;,
+    &#34;sortiter&#34;,
+    &#34;run&#34;,
+    &#34;put_msg&#34;,
+    &#34;endq&#34;,
+    &#34;endq_and_wait&#34;,
+)
+
+# native
+from dataclasses import dataclass
+from multiprocessing import Process, Queue, queues
+from operator import attrgetter
+from os import cpu_count
+from queue import Empty
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Iterator,
+    Optional,
+    Union,
+    TYPE_CHECKING,
+)
+
+
+# pkg
+from .__about__ import (
+    __url__,
+    __version__,
+    __pubdate__,
+    __author__,
+    __email__,
+    __copyright__,
+    __license__,
+)
+
+
+@dataclass
+class Msg:
+    &#34;&#34;&#34;Message for a queue.&#34;&#34;&#34;
+
+    kind: str = &#34;&#34;
+    data: Any = None
+    order: int = 0
+
+
+END_MSG: Msg = Msg(kind=&#34;END&#34;)
+&#34;&#34;&#34;Message that indicates no future messages will be sent.&#34;&#34;&#34;
+
+
+NUM_CPUS: int = cpu_count() or 1
+&#34;&#34;&#34;Number of CPUs on this machine.&#34;&#34;&#34;
+
+# NOTE: The python queue.Queue is not properly a generic.
+# See: https://stackoverflow.com/a/48554601
+if TYPE_CHECKING:  # pragma: no cover
+    MsgQ = queues.Queue[Msg]  # pylint: disable=unsubscriptable-object
+else:
+    MsgQ = queues.Queue
+
+
+def iter_msg(
+    q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
+) -&gt; Iterator[Msg]:
+    &#34;&#34;&#34;Iterate over messages in a queue.
+
+    Args:
+        q (Queue[Msg]): queue to read from
+        block (bool, optional): block if necessary until an item is available. Defaults to True.
+        timeout (float, optional): time in seconds to poll the queue. Defaults to 0.05.
+
+    Yields:
+        Iterator[Msg]: iterate over messages in the queue
+    &#34;&#34;&#34;
+    while True:
+        try:
+            msg = q.get(block=block, timeout=timeout)
+            if msg.kind == END_MSG.kind:
+                # We&#39;d really like to put the `END_MSG` back in the queue
+                # to prevent reading past the end, but in practice
+                # this often creates an uncatchable `BrokenPipeError`.
+                # q.put(END_MSG)
+                break
+            yield msg
+        except Empty:  # pragma: no cover
+            # queue might not actually be empty
+            # see: https://bugs.python.org/issue20147
+            continue
+
+
+def iter_q(q: MsgQ) -&gt; Iterator[Msg]:
+    &#34;&#34;&#34;End a queue and iterate over its current messages.
+
+    Args:
+        q (Queue[Msg]): queue to read from
+
+    Yields:
+        Iterator[Msg]: iterate over messages in the queue
+    &#34;&#34;&#34;
+    endq(q)  # ensure queue has an end
+    return iter_msg(q, block=False, timeout=None)
+
+
+def sortiter(
+    items: Iterable[Any],
+    start: int = 0,
+    key: Callable[[Any], int] = attrgetter(&#34;order&#34;),
+) -&gt; Iterator[Any]:
+    &#34;&#34;&#34;Sort and yield the contents of a generator.
+
+    NOTE: `key` must return values that increment by one for each item. If there
+    are any gaps, items after the gap won&#39;t be yielded until the end.
+
+    Args:
+        items (Iterable): iterable to sort
+        start (int, optional): initial order number. Defaults to 0.
+        key (Callable, optional): custom key function.
+            Defaults to sorting by the `order` attribute.
+
+    Yields:
+        Iterator[Any]: item yielded in the correct order
+    &#34;&#34;&#34;
+    prev = start - 1
+    waiting: List[Any] = []
+    for item in items:
+        if not waiting and key(item) == prev + 1:
+            prev += 1
+            yield item
+            continue
+
+        # items came out of order
+        waiting.append(item)
+        waiting = sorted(waiting, key=key, reverse=True)
+        while waiting and key(waiting[-1]) == prev + 1:
+            prev += 1
+            yield waiting.pop()
+
+    # generator ended; yield any waiting items
+    while waiting:
+        yield waiting.pop()
+
+
+def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -&gt; Process:
+    &#34;&#34;&#34;Run a function as a subprocess.
+
+    Args:
+        func (Callable): function to run in each subprocess
+        *args (Any): additional positional arguments to `func`.
+        **kwargs (Any): additional keyword arguments to `func`.
+
+    Returns:
+        Process: subprocess that was started
+    &#34;&#34;&#34;
+    proc = Process(daemon=True, target=func, args=args, kwargs=kwargs)
+    proc.start()
+    return proc
+
+
+def put_msg(q: MsgQ, kind: str = &#34;&#34;, data: Any = None, order: int = 0) -&gt; MsgQ:
+    &#34;&#34;&#34;Put a message into a queue.
+
+    Args:
+        q (Queue[Msg]): queue to add message to
+        kind (str, optional): kind of message. Defaults to &#34;&#34;.
+        data (Any, optional): message data. Defaults to None.
+        order (int, optional): message order. Defaults to 0.
+
+    Returns:
+        Queue[Msg]: queue the message was added to
+    &#34;&#34;&#34;
+    q.put(Msg(kind, data, order))
+    return q
+
+
+def endq(q: MsgQ) -&gt; MsgQ:
+    &#34;&#34;&#34;Add a message to a queue to indicate its end.
+
+    Args:
+        q (Queue[Msg]): queue on which to send the message
+
+    Returns:
+        Queue[Msg]: queue the message was sent on
+    &#34;&#34;&#34;
+    q.put(END_MSG)
+    return q
+
+
+def endq_and_wait(q: MsgQ, procs: Union[List[Process], Process]) -&gt; List[Process]:
+    &#34;&#34;&#34;Notify a list of processes to end and wait for them to join.
+
+    Args:
+        q (Queue[Msg]): subprocess input queue
+        procs (Union[Process, List[Process]]): processes to wait for
+
+    Returns:
+        List[Process]: subprocesses that ended
+    &#34;&#34;&#34;
+    if isinstance(procs, Process):
+        procs = [procs]
+
+    for _ in range(len(procs)):
+        endq(q)
+
+    for proc in procs:
+        proc.join()
+    return procs</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="ezq.END_MSG"><code class="name">var <span class="ident">END_MSG</span> : <a title="ezq.Msg" href="#ezq.Msg">Msg</a></code></dt>
+<dd>
+<div class="desc"><p>Message that indicates no future messages will be sent.</p></div>
+</dd>
+<dt id="ezq.NUM_CPUS"><code class="name">var <span class="ident">NUM_CPUS</span> : int</code></dt>
+<dd>
+<div class="desc"><p>Number of CPUs on this machine.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="ezq.Queue"><code class="name flex">
+<span>def <span class="ident">Queue</span></span>(<span>maxsize=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns a queue object</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def Queue(self, maxsize=0):
+    &#39;&#39;&#39;Returns a queue object&#39;&#39;&#39;
+    from .queues import Queue
+    return Queue(maxsize, ctx=self.get_context())</code></pre>
+</details>
+</dd>
+<dt id="ezq.endq"><code class="name flex">
+<span>def <span class="ident">endq</span></span>(<span>q: multiprocessing.queues.Queue) ‑> multiprocessing.queues.Queue</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Add a message to a queue to indicate its end.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>queue on which to send the message</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>queue the message was sent on</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def endq(q: MsgQ) -&gt; MsgQ:
+    &#34;&#34;&#34;Add a message to a queue to indicate its end.
+
+    Args:
+        q (Queue[Msg]): queue on which to send the message
+
+    Returns:
+        Queue[Msg]: queue the message was sent on
+    &#34;&#34;&#34;
+    q.put(END_MSG)
+    return q</code></pre>
+</details>
+</dd>
+<dt id="ezq.endq_and_wait"><code class="name flex">
+<span>def <span class="ident">endq_and_wait</span></span>(<span>q: multiprocessing.queues.Queue, procs: Union[List[multiprocessing.context.Process], multiprocessing.context.Process]) ‑> List[multiprocessing.context.Process]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Notify a list of processes to end and wait for them to join.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>subprocess input queue</dd>
+<dt><strong><code>procs</code></strong> :&ensp;<code>Union[<a title="ezq.Process" href="#ezq.Process">Process</a>, List[<a title="ezq.Process" href="#ezq.Process">Process</a>]]</code></dt>
+<dd>processes to wait for</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>List[<a title="ezq.Process" href="#ezq.Process">Process</a>]</code></dt>
+<dd>subprocesses that ended</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def endq_and_wait(q: MsgQ, procs: Union[List[Process], Process]) -&gt; List[Process]:
+    &#34;&#34;&#34;Notify a list of processes to end and wait for them to join.
+
+    Args:
+        q (Queue[Msg]): subprocess input queue
+        procs (Union[Process, List[Process]]): processes to wait for
+
+    Returns:
+        List[Process]: subprocesses that ended
+    &#34;&#34;&#34;
+    if isinstance(procs, Process):
+        procs = [procs]
+
+    for _ in range(len(procs)):
+        endq(q)
+
+    for proc in procs:
+        proc.join()
+    return procs</code></pre>
+</details>
+</dd>
+<dt id="ezq.iter_msg"><code class="name flex">
+<span>def <span class="ident">iter_msg</span></span>(<span>q: multiprocessing.queues.Queue, block: bool = True, timeout: Optional[float] = 0.05) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Iterate over messages in a queue.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>queue to read from</dd>
+<dt><strong><code>block</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>block if necessary until an item is available. Defaults to True.</dd>
+<dt><strong><code>timeout</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>time in seconds to poll the queue. Defaults to 0.05.</dd>
+</dl>
+<h2 id="yields">Yields</h2>
+<dl>
+<dt><code>Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>iterate over messages in the queue</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iter_msg(
+    q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
+) -&gt; Iterator[Msg]:
+    &#34;&#34;&#34;Iterate over messages in a queue.
+
+    Args:
+        q (Queue[Msg]): queue to read from
+        block (bool, optional): block if necessary until an item is available. Defaults to True.
+        timeout (float, optional): time in seconds to poll the queue. Defaults to 0.05.
+
+    Yields:
+        Iterator[Msg]: iterate over messages in the queue
+    &#34;&#34;&#34;
+    while True:
+        try:
+            msg = q.get(block=block, timeout=timeout)
+            if msg.kind == END_MSG.kind:
+                # We&#39;d really like to put the `END_MSG` back in the queue
+                # to prevent reading past the end, but in practice
+                # this often creates an uncatchable `BrokenPipeError`.
+                # q.put(END_MSG)
+                break
+            yield msg
+        except Empty:  # pragma: no cover
+            # queue might not actually be empty
+            # see: https://bugs.python.org/issue20147
+            continue</code></pre>
+</details>
+</dd>
+<dt id="ezq.iter_q"><code class="name flex">
+<span>def <span class="ident">iter_q</span></span>(<span>q: multiprocessing.queues.Queue) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>End a queue and iterate over its current messages.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>queue to read from</dd>
+</dl>
+<h2 id="yields">Yields</h2>
+<dl>
+<dt><code>Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>iterate over messages in the queue</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iter_q(q: MsgQ) -&gt; Iterator[Msg]:
+    &#34;&#34;&#34;End a queue and iterate over its current messages.
+
+    Args:
+        q (Queue[Msg]): queue to read from
+
+    Yields:
+        Iterator[Msg]: iterate over messages in the queue
+    &#34;&#34;&#34;
+    endq(q)  # ensure queue has an end
+    return iter_msg(q, block=False, timeout=None)</code></pre>
+</details>
+</dd>
+<dt id="ezq.put_msg"><code class="name flex">
+<span>def <span class="ident">put_msg</span></span>(<span>q: multiprocessing.queues.Queue, kind: str = '', data: Any = None, order: int = 0) ‑> multiprocessing.queues.Queue</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Put a message into a queue.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>queue to add message to</dd>
+<dt><strong><code>kind</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>kind of message. Defaults to "".</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>Any</code>, optional</dt>
+<dd>message data. Defaults to None.</dd>
+<dt><strong><code>order</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>message order. Defaults to 0.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
+<dd>queue the message was added to</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def put_msg(q: MsgQ, kind: str = &#34;&#34;, data: Any = None, order: int = 0) -&gt; MsgQ:
+    &#34;&#34;&#34;Put a message into a queue.
+
+    Args:
+        q (Queue[Msg]): queue to add message to
+        kind (str, optional): kind of message. Defaults to &#34;&#34;.
+        data (Any, optional): message data. Defaults to None.
+        order (int, optional): message order. Defaults to 0.
+
+    Returns:
+        Queue[Msg]: queue the message was added to
+    &#34;&#34;&#34;
+    q.put(Msg(kind, data, order))
+    return q</code></pre>
+</details>
+</dd>
+<dt id="ezq.run"><code class="name flex">
+<span>def <span class="ident">run</span></span>(<span>func: Callable[..., Any], *args: Any, **kwargs: Any) ‑> multiprocessing.context.Process</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run a function as a subprocess.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>func</code></strong> :&ensp;<code>Callable</code></dt>
+<dd>function to run in each subprocess</dd>
+<dt><strong><code>*args</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional positional arguments to <code>func</code>.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional keyword arguments to <code>func</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="ezq.Process" href="#ezq.Process">Process</a></code></dt>
+<dd>subprocess that was started</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -&gt; Process:
+    &#34;&#34;&#34;Run a function as a subprocess.
+
+    Args:
+        func (Callable): function to run in each subprocess
+        *args (Any): additional positional arguments to `func`.
+        **kwargs (Any): additional keyword arguments to `func`.
+
+    Returns:
+        Process: subprocess that was started
+    &#34;&#34;&#34;
+    proc = Process(daemon=True, target=func, args=args, kwargs=kwargs)
+    proc.start()
+    return proc</code></pre>
+</details>
+</dd>
+<dt id="ezq.sortiter"><code class="name flex">
+<span>def <span class="ident">sortiter</span></span>(<span>items: Iterable[Any], start: int = 0, key: Callable[[Any], int] = operator.attrgetter('order')) ‑> Iterator[Any]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Sort and yield the contents of a generator.</p>
+<p>NOTE: <code>key</code> must return values that increment by one for each item. If there
+are any gaps, items after the gap won't be yielded until the end.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>items</code></strong> :&ensp;<code>Iterable</code></dt>
+<dd>iterable to sort</dd>
+<dt><strong><code>start</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>initial order number. Defaults to 0.</dd>
+<dt><strong><code>key</code></strong> :&ensp;<code>Callable</code>, optional</dt>
+<dd>custom key function.
+Defaults to sorting by the <code>order</code> attribute.</dd>
+</dl>
+<h2 id="yields">Yields</h2>
+<dl>
+<dt><code>Iterator[Any]</code></dt>
+<dd>item yielded in the correct order</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sortiter(
+    items: Iterable[Any],
+    start: int = 0,
+    key: Callable[[Any], int] = attrgetter(&#34;order&#34;),
+) -&gt; Iterator[Any]:
+    &#34;&#34;&#34;Sort and yield the contents of a generator.
+
+    NOTE: `key` must return values that increment by one for each item. If there
+    are any gaps, items after the gap won&#39;t be yielded until the end.
+
+    Args:
+        items (Iterable): iterable to sort
+        start (int, optional): initial order number. Defaults to 0.
+        key (Callable, optional): custom key function.
+            Defaults to sorting by the `order` attribute.
+
+    Yields:
+        Iterator[Any]: item yielded in the correct order
+    &#34;&#34;&#34;
+    prev = start - 1
+    waiting: List[Any] = []
+    for item in items:
+        if not waiting and key(item) == prev + 1:
+            prev += 1
+            yield item
+            continue
+
+        # items came out of order
+        waiting.append(item)
+        waiting = sorted(waiting, key=key, reverse=True)
+        while waiting and key(waiting[-1]) == prev + 1:
+            prev += 1
+            yield waiting.pop()
+
+    # generator ended; yield any waiting items
+    while waiting:
+        yield waiting.pop()</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="ezq.Msg"><code class="flex name class">
+<span>class <span class="ident">Msg</span></span>
+<span>(</span><span>kind: str = '', data: Any = None, order: int = 0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Message for a queue.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Msg:
+    &#34;&#34;&#34;Message for a queue.&#34;&#34;&#34;
+
+    kind: str = &#34;&#34;
+    data: Any = None
+    order: int = 0</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="ezq.Msg.data"><code class="name">var <span class="ident">data</span> : Any</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="ezq.Msg.kind"><code class="name">var <span class="ident">kind</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="ezq.Msg.order"><code class="name">var <span class="ident">order</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="ezq.Process"><code class="flex name class">
+<span>class <span class="ident">Process</span></span>
+<span>(</span><span>group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Process objects represent activity that is run in a separate process</p>
+<p>The class is analogous to <code>threading.Thread</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Process(process.BaseProcess):
+    _start_method = None
+    @staticmethod
+    def _Popen(process_obj):
+        return _default_context.get_context().Process._Popen(process_obj)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>multiprocessing.process.BaseProcess</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul>
+<li><a href="#why">Why?</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#example-sum-messages">Example: Sum Messages</a></li>
+<li><a href="#typical-worker-lifecycle">Typical worker lifecycle</a></li>
+<li><a href="#a-worker-is-just-a-function">A worker is just a function</a></li>
+<li><a href="#create-workers">Create workers</a></li>
+<li><a href="#send-data">Send data</a></li>
+<li><a href="#beware-pickle">Beware pickle</a></li>
+<li><a href="#iterate-over-messages">Iterate over messages</a></li>
+<li><a href="#end-the-queue">End the queue</a></li>
+<li><a href="#example-read-and-write-queues">Example: Read and Write Queues</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="">
+<li><code><a title="ezq.END_MSG" href="#ezq.END_MSG">END_MSG</a></code></li>
+<li><code><a title="ezq.NUM_CPUS" href="#ezq.NUM_CPUS">NUM_CPUS</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="ezq.Queue" href="#ezq.Queue">Queue</a></code></li>
+<li><code><a title="ezq.endq" href="#ezq.endq">endq</a></code></li>
+<li><code><a title="ezq.endq_and_wait" href="#ezq.endq_and_wait">endq_and_wait</a></code></li>
+<li><code><a title="ezq.iter_msg" href="#ezq.iter_msg">iter_msg</a></code></li>
+<li><code><a title="ezq.iter_q" href="#ezq.iter_q">iter_q</a></code></li>
+<li><code><a title="ezq.put_msg" href="#ezq.put_msg">put_msg</a></code></li>
+<li><code><a title="ezq.run" href="#ezq.run">run</a></code></li>
+<li><code><a title="ezq.sortiter" href="#ezq.sortiter">sortiter</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="ezq.Msg" href="#ezq.Msg">Msg</a></code></h4>
+<ul class="">
+<li><code><a title="ezq.Msg.data" href="#ezq.Msg.data">data</a></code></li>
+<li><code><a title="ezq.Msg.kind" href="#ezq.Msg.kind">kind</a></code></li>
+<li><code><a title="ezq.Msg.order" href="#ezq.Msg.order">order</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="ezq.Process" href="#ezq.Process">Process</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

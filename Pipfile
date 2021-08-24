@@ -6,8 +6,11 @@ verify_ssl = true
 [dev-packages]
 black = "*"
 coverage = "*"
+mypy = "*"
+pdoc3 = "*"
 pylint = "*"
 pytest = "*"
+pytest-cov = "*"
 
 [packages]
 

@@ -10,7 +10,7 @@ import ezq
 
 def printer(write_q):
     """Print results in increasing order."""
-    for msg in ezq.iter_sortq(write_q):
+    for msg in ezq.sortiter(ezq.iter_msg(write_q)):
         print(msg.data)
 
 
@@ -19,9 +19,9 @@ def collatz(read_q, write_q):
     for msg in ezq.iter_msg(read_q):
         num = msg.data
         if msg.kind == "EVEN":
-            write_q.put(ezq.Msg(data=(num, num / 2), order=msg.order))
+            ezq.put_msg(write_q, data=(num, num / 2), order=msg.order)
         elif msg.kind == "ODD":
-            write_q.put(ezq.Msg(data=(num, 3 * num + 1), order=msg.order))
+            ezq.put_msg(write_q, data=(num, 3 * num + 1), order=msg.order)
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
 
     for i in range(40):
         kind = "EVEN" if i % 2 == 0 else "ODD"
-        read_q.put(ezq.Msg(kind=kind, data=i, order=i))
+        ezq.put_msg(read_q, kind=kind, data=i, order=i)
 
     ezq.endq_and_wait(read_q, readers)
     ezq.endq_and_wait(write_q, writers)

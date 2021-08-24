@@ -1,14 +1,22 @@
-# ezq - Simple wrappers for python multiprocessing
+# ezq
 
-## Purpose
+_Simple wrappers for python multiprocessing._
 
-An easy way to get started using queues and [`multiprocessing`] in python for CPU-heavy
-work. Use [`threading`] for I/O heavy work.
+[![Build Status](https://img.shields.io/github/workflow/status/metaist/ezq/CI?style=for-the-badge)](https://github.com/metaist/ezq/actions)
+[![ezq on PyPI](https://img.shields.io/pypi/v/ezq.svg?color=blue&style=for-the-badge)](https://pypi.org/project/ezq)
 
-The general idea is that you connect workers (subprocesses) with queues.
+[Changelog] - [Issues] - [Documentation]
 
-[`multiprocessing`]: https://docs.python.org/3/library/multiprocessing.html
-[`threading`]: https://docs.python.org/3/library/threading.html
+[changelog]: https://github.com/metaist/ezq/blob/main/CHANGELOG.md
+[issues]: https://github.com/metaist/ezq/issues
+[documentation]: https://metaist.github.io/ezq/
+
+## Why?
+
+Even though [`multiprocessing`][1] has `Pool` and `Queue`, it's surprisingly difficult
+to get started to do slightly more complex workflows. `ezq` makes it easy to connect subprocesses (workers) using queues.
+
+[1]: https://docs.python.org/3/library/multiprocessing.html
 
 ## Install
 
@@ -33,7 +41,7 @@ def worker(in_q, out_q):
         count += msg.data
 
     # when `in_q` is done, put the result on `out_q`
-    out_q.put(ezq.Msg(data=count))
+    ezq.put_msg(out_q, data=count)
 
 
 def main():
@@ -45,12 +53,12 @@ def main():
     # workers started
 
     for i in range(1000):
-        in_q.put(ezq.Msg(data=i))  # send work
+        ezq.put_msg(in_q, data=i)  # send work
 
-    ezq.endq_and_wait(in_q, workers)  # end work queue and wait for workers to finish
-    ezq.endq(out_q)  # end result queue so we can iterate over it
+    ezq.endq_and_wait(in_q, workers)
+    # all workers are done
 
-    result = sum(msg.data for msg in ezq.iter_msg(out_q))
+    result = sum(msg.data for msg in ezq.iter_q(out_q))
     assert result == sum(x for x in range(1000))
     print(result)
 
@@ -59,55 +67,84 @@ if __name__ == "__main__":
     main()
 ```
 
-## Key Concepts
+## Typical worker lifecycle
 
-### `ezq.run` creates workers
+- The main process [creates workers](#create-workers) with `ezq.run`.
 
-You create subprocesses (workers) using `ezq.run` which takes a function and any
-additional parameters to send to the function. You'll generally want to pass in a queue
-that you can use to send work to the worker. This will also be the way to notify the
-worker that there's no additional work to be done.
+- The main process [sends data](#send-data) with `ezq.put_msg`.
 
-### Parameters to workers and queue contents are sent using `pickle`
+- The worker [iterates over the queue](#iterate-over-messages) with `ezq.iter_msg`.
 
-Note that the additional parameters sent to a worker are first passed to `pickle` so
-certain types of data (e.g., custom classes) many not work. The same is true for the data
-that is put into a `ezq.Msg`.
+- The main process [ends the queue](#end-the-queue) with `ezq.endq_and_wait`.
 
-### Work is sent via `ezq.Msg` objects
+- The worker returns when it reaches the end of the queue.
 
-Once you've set up the workers, you send them work by putting `ezq.Msg` objects in the
-queue. An `ezq.Msg` object has three attributes:
+## A worker is just a function
 
-- `.kind` - a string that indicates what kind of message it is. You can use this to send
-  multiple kinds of work to the same worker. Note that the special `END` kind is used to
-  indicate the end of a queue (that's what `ezq.endq` sends).
+In general, there's nothing special about a worker function, but note:
 
-- `.data` - anything that can be pickled. This is the data you want the worker to work on.
+- All arguments are passed through `pickle` first ([see below](#beware-pickle)).
 
-- `.order` - an integer that indicates the message order. This can help you reorder results
-  or ensure that messages from a queue are read in a particular order
-  (that's what `ezq.iter_sortq` does).
+- We don't currently do anything with the return value of this function. You'll
+  need an output queue to return data back to the main process.
 
-### Read from the queue using `ezq.iter_msg` or `ezq.iter_sortq`
+## Create workers
 
-In the worker, you get the next message by iterating over the queue using
-`ezq.iter_msg`. If you need the messages to be read in a sorted order, use `ezq.iter_sortq`.
-In both cases, when the special `END` message is reached, the `for` loop will automatically
-break (your worker never sees this message).
+In the main process, create workers using `ezq.run` which takes a function and
+any additional parameters. Note that **workers cannot create additional workers**.
 
-### End the queue with `ezq.endq` or `ezq.endq_and_wait`
+## Send data
 
-If a queue is not ended, `ezq.iter_msg` (and `ezq.iter_sortq`) will loop forever waiting
-for the next message. Therefore, you need to end the queue with one of the two functions
-provided.
+Once you've started the workers, you send them data by calling with `ezq.put_msg`
+which creates `ezq.Msg` objects and puts them in the queue. There are three
+attributes that are sent (all optional):
 
-- `ezq.endq` simply adds the special message to the end of the queue. You can now iterate
-  over the queue (e.g., using `ezq.iter_msg`).
+- `kind` - a string that indicates what kind of message it is.
+  You can use this to send multiple kinds of work to the same worker.
+  Note that the special `END` kind is used to indicate the end of a queue
+  (that's what `ezq.endq` sends).
 
-- `ezq.endq_and_wait` will put the message in the queue several times-- once for each
-  process that you're waiting for. Then it will wait for all the processes to finish before
-  returning.
+- `data` - anything that can be pickled.
+  This is the data you want the worker to work on.
+
+- `order` - an integer that indicates the message order.
+  This can help you reorder results or ensure that messages from a queue are
+  read in a particular order (that's what `ezq.sortiter` uses).
+
+## Beware `pickle`
+
+All parameters sent to workers in `ezq.run` and any values put in queues
+using `ezq.put_msg` are first passed to `pickle` by [`multiprocessing`][1]
+so anything that cannot be pickled (e.g., database connection)
+cannot be passed to workers.
+
+## Iterate over messages
+
+Inside the worker, use `ezq.iter_msg` to iterate over the messages in the queue
+until the queue ends ([see below](#end-the-queue)). If the messages need to be
+sorted first, wrap the call with `ezq.sortiter`.
+
+If you need to read all the messages currently in the queue, you can use `ezq.iter_q`
+which will immediately end the queue and return results. You can also wrap this call
+in `ezq.sortiter` if you need the messages to be sorted first.
+
+## End the queue
+
+After the main process has sent all the data to the workers, it needs to indicate
+that there's no additional work to be done. This is done by putting a special
+`ezq.END_MSG` in the queue which is processed by `ezq.iter_msg` and never seen by
+the workers.
+
+There are three ways a queue can be ended:
+
+- `ezq.endq` - Explicitly end a queue. You normally won't need to call this.
+
+- `ezq.iter_q` - End a queue and iterate over the current messages. This is
+  useful when processing an output queue back in the main process.
+
+- `ezq.endq_and_wait` - End a queue and wait for the workers to finish. The most
+  common way to end a queue. You'll need to call this before the end of your main
+  process in order to get results back from all the workers.
 
 ## Example: Read and Write Queues
 
@@ -121,7 +158,7 @@ import ezq
 
 def printer(write_q):
     """Print results in increasing order."""
-    for msg in ezq.iter_sortq(write_q):
+    for msg in ezq.sortiter(ezq.iter_msg(write_q)):
         print(msg.data)
 
 
@@ -130,9 +167,9 @@ def collatz(read_q, write_q):
     for msg in ezq.iter_msg(read_q):
         num = msg.data
         if msg.kind == "EVEN":
-            write_q.put(ezq.Msg(data=(num, num / 2), order=msg.order))
+            ezq.put_msg(write_q, data=(num, num / 2), order=msg.order)
         elif msg.kind == "ODD":
-            write_q.put(ezq.Msg(data=(num, 3 * num + 1), order=msg.order))
+            ezq.put_msg(write_q, data=(num, 3 * num + 1), order=msg.order)
 
 
 def main():
@@ -143,7 +180,7 @@ def main():
 
     for i in range(40):
         kind = "EVEN" if i % 2 == 0 else "ODD"
-        read_q.put(ezq.Msg(kind=kind, data=i, order=i))
+        ezq.put_msg(read_q, kind=kind, data=i, order=i)
 
     ezq.endq_and_wait(read_q, readers)
     ezq.endq_and_wait(write_q, writers)

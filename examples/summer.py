@@ -12,7 +12,7 @@ def worker(in_q, out_q):
         count += msg.data
 
     # when `in_q` is done, put the result on `out_q`
-    out_q.put(ezq.Msg(data=count))
+    ezq.put_msg(out_q, data=count)
 
 
 def main():
@@ -24,12 +24,12 @@ def main():
     # workers started
 
     for i in range(1000):
-        in_q.put(ezq.Msg(data=i))  # send work
+        ezq.put_msg(in_q, data=i)  # send work
 
-    ezq.endq_and_wait(in_q, workers)  # end work queue and wait for workers to finish
-    ezq.endq(out_q)  # end result queue so we can iterate over it
+    ezq.endq_and_wait(in_q, workers)
+    # all workers are done
 
-    result = sum(msg.data for msg in ezq.iter_msg(out_q))
+    result = sum(msg.data for msg in ezq.iter_q(out_q))
     assert result == sum(x for x in range(1000))
     print(result)
 
