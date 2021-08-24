@@ -68,5 +68,5 @@ jobs:
 
       - name: Build docs
         run: |
-          pdoc --html --output-dir docs --force ezq
+          pdoc --html --output-dir docs --force src/ezq
           mv docs/ezq/index.html docs/index.html
