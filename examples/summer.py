@@ -26,7 +26,8 @@ def main():
     for i in range(1000):
         ezq.put_msg(in_q, data=i)  # send work
 
-    ezq.endq_and_wait(in_q, workers)  # end work queue and wait for workers to finish
+    ezq.endq_and_wait(in_q, workers)
+    # all workers are done
 
     result = sum(msg.data for msg in ezq.iter_q(out_q))
     assert result == sum(x for x in range(1000))

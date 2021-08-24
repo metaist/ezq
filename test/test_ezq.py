@@ -10,9 +10,6 @@ import ezq
 
 # iterating over queue #
 
-identity = lambda x: x
-"""Returns the given argument."""
-
 
 def test_iter_q():
     """Iterate over all messages."""
@@ -30,7 +27,7 @@ def test_sortiter_sorted_list():
     num = 1000
     order = list(range(num))
     want = order.copy()
-    got = list(ezq.sortiter(order, key=identity))
+    got = list(ezq.sortiter(order, key=lambda x: x))
     assert want == got, "expected numbers in order"
 
 
@@ -41,7 +38,7 @@ def test_sortiter_random_list():
     want = order.copy()
     random.shuffle(order)
 
-    got = list(ezq.sortiter(order, key=identity))
+    got = list(ezq.sortiter(order, key=lambda x: x))
     assert want == got, "expected numbers in order"
 
 
