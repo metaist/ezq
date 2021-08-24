@@ -3,15 +3,47 @@
 """Simple wrapper for python multiprocessing.
 
 .. include:: ../../README.md
+   :start-line: 4
 """
+
+__all__ = (
+    "Process",
+    "Queue",
+    "__url__",
+    "__version__",
+    "__pubdate__",
+    "__author__",
+    "__email__",
+    "__copyright__",
+    "__license__",
+    "Msg",
+    "END_MSG",
+    "NUM_CPUS",
+    "iter_msg",
+    "iter_q",
+    "sortiter",
+    "run",
+    "put_msg",
+    "endq",
+    "endq_and_wait",
+)
 
 # native
 from dataclasses import dataclass
-from multiprocessing import Process, Queue
-from multiprocessing.queues import Queue as Q
+from multiprocessing import Process, Queue, queues
+from operator import attrgetter
 from os import cpu_count
-from typing import Any, Callable, Iterable, List, Iterator, Union
-import queue
+from queue import Empty
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Iterator,
+    Optional,
+    Union,
+    TYPE_CHECKING,
+)
 
 
 # pkg
@@ -42,15 +74,21 @@ END_MSG: Msg = Msg(kind="END")
 NUM_CPUS: int = cpu_count() or 1
 """Number of CPUs on this machine."""
 
-sortkey = lambda o: o.order
-"""Key used to sort messages in a queue."""
+# NOTE: The python queue.Queue is not properly a generic.
+# See: https://stackoverflow.com/a/48554601
+if TYPE_CHECKING:  # pragma: no cover
+    MsgQ = queues.Queue[Msg]  # pylint: disable=unsubscriptable-object
+else:
+    MsgQ = queues.Queue
 
 
-def iter_msg(q: Q, block=True, timeout=0.05) -> Iterator[Msg]:
+def iter_msg(
+    q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
+) -> Iterator[Msg]:
     """Iterate over messages in a queue.
 
     Args:
-        q (Queue): queue to read from
+        q (Queue[Msg]): queue to read from
         block (bool, optional): block if necessary until an item is available. Defaults to True.
         timeout (float, optional): time in seconds to poll the queue. Defaults to 0.05.
 
@@ -62,22 +100,22 @@ def iter_msg(q: Q, block=True, timeout=0.05) -> Iterator[Msg]:
             msg = q.get(block=block, timeout=timeout)
             if msg.kind == END_MSG.kind:
                 # We'd really like to put the `END_MSG` back in the queue
-                # to prevent anyone from reading past the end, but in practice
-                # this creates `BrokenPipeError`.
+                # to prevent reading past the end, but in practice
+                # this often creates an uncatchable `BrokenPipeError`.
                 # q.put(END_MSG)
                 break
             yield msg
-        except queue.Empty:  # pragma: no cover
+        except Empty:  # pragma: no cover
             # queue might not actually be empty
             # see: https://bugs.python.org/issue20147
             continue
 
 
-def iter_q(q: Q) -> Iterator[Msg]:
+def iter_q(q: MsgQ) -> Iterator[Msg]:
     """End a queue and iterate over its current messages.
 
     Args:
-        q (Queue): queue to read from
+        q (Queue[Msg]): queue to read from
 
     Yields:
         Iterator[Msg]: iterate over messages in the queue
@@ -86,7 +124,11 @@ def iter_q(q: Q) -> Iterator[Msg]:
     return iter_msg(q, block=False, timeout=None)
 
 
-def sortiter(items: Iterable, start: int = 0, key: Callable = sortkey) -> Iterator[Any]:
+def sortiter(
+    items: Iterable[Any],
+    start: int = 0,
+    key: Callable[[Any], int] = attrgetter("order"),
+) -> Iterator[Any]:
     """Sort and yield the contents of a generator.
 
     NOTE: `key` must return values that increment by one for each item. If there
@@ -121,7 +163,7 @@ def sortiter(items: Iterable, start: int = 0, key: Callable = sortkey) -> Iterat
         yield waiting.pop()
 
 
-def run(func: Callable, *args, **kwargs) -> Process:
+def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Process:
     """Run a function as a subprocess.
 
     Args:
@@ -137,40 +179,40 @@ def run(func: Callable, *args, **kwargs) -> Process:
     return proc
 
 
-def put_msg(q: Q, kind: str = "", data: Any = None, order: int = 0) -> Q:
+def put_msg(q: MsgQ, kind: str = "", data: Any = None, order: int = 0) -> MsgQ:
     """Put a message into a queue.
 
     Args:
-        q (Queue): queue to add message to
+        q (Queue[Msg]): queue to add message to
         kind (str, optional): kind of message. Defaults to "".
         data (Any, optional): message data. Defaults to None.
         order (int, optional): message order. Defaults to 0.
 
     Returns:
-        Queue: queue the message was added to
+        Queue[Msg]: queue the message was added to
     """
     q.put(Msg(kind, data, order))
     return q
 
 
-def endq(q: Q) -> Q:
+def endq(q: MsgQ) -> MsgQ:
     """Add a message to a queue to indicate its end.
 
     Args:
-        q (Queue): queue on which to send the message
+        q (Queue[Msg]): queue on which to send the message
 
     Returns:
-        Queue: queue the message was sent on
+        Queue[Msg]: queue the message was sent on
     """
     q.put(END_MSG)
     return q
 
 
-def endq_and_wait(q: Q, procs: Union[Process, List[Process]]) -> List[Process]:
+def endq_and_wait(q: MsgQ, procs: Union[List[Process], Process]) -> List[Process]:
     """Notify a list of processes to end and wait for them to join.
 
     Args:
-        q (Queue): subprocess input queue
+        q (Queue[Msg]): subprocess input queue
         procs (Union[Process, List[Process]]): processes to wait for
 
     Returns:
