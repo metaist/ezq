@@ -153,7 +153,7 @@ def sortiter(
 
         # items came out of order
         waiting.append(item)
-        waiting = sorted(waiting, key=key, reverse=True)
+        waiting.sort(key=key, reverse=True)  # sort in-place for performance
         while waiting and key(waiting[-1]) == prev + 1:
             prev += 1
             yield waiting.pop()
