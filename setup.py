@@ -13,8 +13,9 @@ from setuptools import setup, find_namespace_packages
 # pkg
 pkg = {}
 here = Path(__file__).parent.resolve()
-top = here / "src" / "ezq"
-exec((top / "__about__.py").open().read(), pkg)  # pylint: disable=exec-used
+exec(  # pylint: disable=exec-used
+    (here / "src" / "ezq" / "__about__.py").open(encoding="utf-8").read(), pkg
+)
 
 # See: https://github.com/pypa/pip/issues/7953
 site.ENABLE_USER_SITE = "--user" in sys.argv[1:]
