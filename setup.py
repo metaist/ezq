@@ -28,7 +28,7 @@ setup(
     name="ezq",
     version=pkg["__version__"],
     description=pkg["__doc__"].split("\n")[0],
-    long_description=(here / "README.md").read_text(),
+    long_description=(here / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     license=pkg["__license__"],
     author=pkg["__author__"],
