@@ -8,9 +8,9 @@ black = "*"
 coverage = "*"
 mypy = "*"
 pdoc3 = "*"
-pylint = "*"
 pytest = "*"
 pytest-cov = "*"
+ruff = "*"
 
 [packages]
 

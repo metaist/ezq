@@ -41,22 +41,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install black flake8 mypy pdoc3 pylint pytest pytest-cov
+          pip install black mypy pdoc3 pytest pytest-cov ruff
 
       - name: Format with black
         run: |
           black .
 
-      - name: Lint with pylint
+      - name: Lint with ruff
         run: |
-          time pylint -j 0 --rcfile=.pylintrc examples test src *.py
-
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 --exclude .git,.venv,build,dist,__pycache__ --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          time flake8 --exclude .git,.venv,build,dist,__pycache__ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          ruff .
 
       - name: Static type check with mypy
         run: |
