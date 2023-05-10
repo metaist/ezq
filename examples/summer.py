@@ -1,37 +1,40 @@
 #!/usr/bin/env python
 # coding: utf-8
 """Example of a worker that sums up messages."""
+
 import ezq
 
 
-def worker(in_q, out_q):
-    """Add up all the messges."""
-    count = 0
-    for msg in ezq.iter_msg(in_q):
-        # you could check `msg.kind` if there's different kinds of work
-        count += msg.data
+def worker(q: ezq.Q, out: ezq.Q) -> None:
+    """Add up all the messages."""
+    total = 0
+    for msg in q:  # read a message from the queue
+        total += msg.data
 
-    # when `in_q` is done, put the result on `out_q`
-    ezq.put_msg(out_q, data=count)
+    # after reading all the messages, write the total
+    out.put(total)
 
 
-def main():
+def main() -> None:
     """Run several workers."""
-    in_q = ezq.Queue()  # to send work
-    out_q = ezq.Queue()  # to get results
+    # Step 1: Creates the queues and start the workers.
+    q, out = ezq.Q(), ezq.Q()  # input & output queues
+    workers = [ezq.run(worker, q, out) for _ in range(ezq.NUM_CPUS)]
+    # workers are all running
 
-    workers = [ezq.run(worker, in_q, out_q) for _ in range(ezq.NUM_CPUS)]
-    # workers started
-
+    # Step 2: Send work to the workers.
     for i in range(1000):
-        ezq.put_msg(in_q, data=i)  # send work
+        q.put(i)  # send work
 
-    ezq.endq_and_wait(in_q, workers)
-    # all workers are done
+    # Step 3: Tell the workers to finish.
+    q.stop(workers)
+    # workers are all stopped
 
-    result = sum(msg.data for msg in ezq.iter_q(out_q))
-    assert result == sum(x for x in range(1000))
-    print(result)
+    # Step 4: Process the results.
+    want = sum(range(1000))
+    have = sum(msg.data for msg in out.items())
+    assert have == want
+    print(have)
 
 
 if __name__ == "__main__":

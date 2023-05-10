@@ -3,134 +3,129 @@
 """Test ezq functions."""
 
 # native
-import random
+import operator
+from typing import Callable
 
 # pkg
 import ezq
 
-# iterating over queue #
+
+# functional API (deprecated) #
 
 
-def test_iter_q():
-    """Iterate over all messages."""
-    num = 1000
-    q = ezq.Queue()
-    for _ in range(num):
-        ezq.put_msg(q, "MSG", 1)
+def test_functional_api() -> None:
+    """Run workers using the functional API (deprecated)."""
 
-    total = sum(msg.data for msg in ezq.iter_q(q))
-    assert num == total, "expect iterator to get all messages"
+    def worker_f(q: ezq.MsgQ, out: ezq.MsgQ) -> None:
+        """Internal worker."""
+        for msg in ezq.iter_msg(q):
+            ezq.put_msg(out, data=msg.data + 1, order=msg.order)
 
+    q: ezq.MsgQ = ezq.Queue()
+    out: ezq.MsgQ = ezq.Queue()
+    process = ezq.run(worker_f, q, out)
 
-def test_sortiter_sorted_list():
-    """Sort a list of sorted numbers."""
-    num = 1000
-    order = list(range(num))
-    want = order.copy()
-    got = list(ezq.sortiter(order, key=lambda x: x))
-    assert want == got, "expected numbers in order"
+    q2: ezq.MsgQ = ezq.Q(thread=True).q
+    out2: ezq.MsgQ = ezq.Q(thread=True).q
+    thread = ezq.run_thread(worker_f, q2, out2)
 
+    for i in range(10):
+        ezq.put_msg(q, data=i, order=i)
+        ezq.put_msg(q2, data=i, order=i)
 
-def test_sortiter_random_list():
-    """Sort a list of numbers."""
-    num = 1000
-    order = list(range(num))
-    want = order.copy()
-    random.shuffle(order)
+    ezq.endq_and_wait(q, process)
+    ezq.endq_and_wait(q2, thread)
 
-    got = list(ezq.sortiter(order, key=lambda x: x))
-    assert want == got, "expected numbers in order"
+    want = [x + 1 for x in range(10)]
 
+    have = [msg.data for msg in ezq.sortiter(ezq.iter_q(out))]
+    assert have == want, "expected subprocesses to work"
 
-def test_sortiter_messages():
-    """Sort messages in order."""
-    num = 1000
-    order = list(range(num))
-    want = order.copy()
-    random.shuffle(order)
-
-    q = ezq.Queue()
-    for o in order:
-        ezq.put_msg(q, order=o)
-
-    got = [msg.order for msg in ezq.sortiter(ezq.iter_q(q))]
-    assert want == got, "expected ids in order"
+    have = [msg.data for msg in ezq.sortiter(ezq.iter_q(out2))]
+    assert have == want, "expected threads to work"
 
 
-def test_sortiter_gap():
-    """Sort messages in order even if there's a gap."""
-    num = 1000
-    order = list(range(num - 10)) + list(range(num - 5, num))
-    want = order.copy()
-    random.shuffle(order)
+def test_q_wrapper() -> None:
+    """Use underlying queue."""
+    q = ezq.Q(thread=True)
+    q.put(1)
+    q.put(ezq.Msg(data=2))
 
-    q = ezq.Queue()
-    for o in order:
-        ezq.put_msg(q, order=o)
+    assert q.qsize() == 2, "expected function to be delegated to queue"
 
-    got = [msg.order for msg in ezq.sortiter(ezq.iter_q(q))]
-    assert want == got, "expected ids in order"
+    want = [1, 2]
+    have = [msg.data for msg in q.items(cache=True)]
+    assert have == want, "expected both to be the same"
 
-
-# running subprocesses #
+    have = [msg.data for msg in q.items(cache=True)]
+    assert have == want, "expected same results after .items() twice"
 
 
-def msg_summer(q: ezq.Queue, n_msg: int, n_sum: int):
-    """Add up the message content.
+# example workers
+
+
+def worker_sum(q: ezq.Q, out: ezq.Q, num: int) -> None:
+    """Worker that sums message data.
 
     Args:
-        q (ezq.Queue): queue to read from
-        n_msg (int): expected number of messages
-        n_sum (int): expected sum of message data
+        in_q (ezq.Q): queue to read from
+        out_q (ezq.Q): queue to report count
+        num (int): worker number
     """
-
-    result, count = 0, 0
-    for msg in ezq.iter_msg(q):
-        result += msg.data
-        count += 1
-    assert count == n_msg, f"expect {n_msg} messages"
-    assert result == n_sum, f"expect sum of {n_sum}"
+    result = sum(msg.data if isinstance(msg.data, int) else msg.data() for msg in q)
+    out.put((num, result))
 
 
-def msg_counter(in_q: ezq.Queue, out_q: ezq.Queue, num: int):
-    """Count the number of messages.
-
-    Args:
-        in_q (ezq.Queue): queue to read from
-        out_q (ezq.Queue): queue to report count
-        num (int): process number
-    """
-    assert num <= ezq.NUM_CPUS, "expect subprocess number to be less than cpus"
-
-    count = sum(msg.data for msg in ezq.iter_msg(in_q))
-    out_q.put(ezq.Msg(data=count))
+# running subprocesses and threads #
 
 
-def test_run_one():
-    """Single subprocess with fixed arguments."""
+def test_run_processes() -> None:
+    """Run several workers with different arguments."""
     n_msg = 1000
-    n_sum = sum(range(n_msg))
 
-    q = ezq.Queue()
-    worker = ezq.run(msg_summer, q, n_msg=n_msg, n_sum=n_sum)
+    q, out = ezq.Q(), ezq.Q()
+    workers = [ezq.run(worker_sum, q, out, num=i) for i in range(ezq.NUM_CPUS)]
 
-    for i in range(n_msg):
-        ezq.put_msg(q, data=i)
+    for num in range(n_msg):
+        q.put(ezq.Msg(data=num))
+    q.stop(workers)
 
-    ezq.endq_and_wait(q, worker)
+    want = sum(range(n_msg))
+    have = sum(msg.data[1] for msg in out.items())
+    assert have == want, f"expect sum of {want} from processes"
 
 
-def test_run_many():
-    """Run several subprocesses with different arguments."""
+def test_run_threads() -> None:
+    """Run threads in parallel."""
     n_msg = 1000
-    in_q = ezq.Queue()
-    out_q = ezq.Queue()
 
-    workers = [ezq.run(msg_counter, in_q, out_q, num=i) for i in range(ezq.NUM_CPUS)]
+    q, out = ezq.Q(thread=True), ezq.Q(thread=True)
+    workers = [
+        ezq.run_thread(worker_sum, q, out, num=i) for i in range(ezq.NUM_THREADS)
+    ]
 
-    for _ in range(n_msg):
-        ezq.put_msg(in_q, data=1)
-    ezq.endq_and_wait(in_q, workers)  # workers done
+    def wrap_lambda(i: int) -> Callable[[], int]:
+        """Wrap a number in a lambda so thread-context works."""
+        return lambda: i
 
-    count = sum(msg.data for msg in ezq.iter_q(out_q))
-    assert count == n_msg, f"expect {n_msg} messages"
+    for num in range(n_msg):
+        q.put(wrap_lambda(num))
+    q.stop(workers)
+
+    want = sum(range(n_msg))
+    have = sum(msg.data[1] for msg in out.items())
+    assert have == want, f"expect sum of {want} from threads"
+
+
+def test_map() -> None:
+    """Run a function on multiple threads."""
+    left = range(10)
+    right = range(10, 0, -1)
+
+    want = [a + b for (a, b) in zip(left, right)]
+
+    have = list(ezq.map(operator.add, left, right, thread=True))
+    assert have == want, "expected threads to work"
+
+    have = list(ezq.map(operator.add, left, right))
+    assert have == want, "expected subprocesses to work"
