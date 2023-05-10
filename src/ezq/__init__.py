@@ -129,6 +129,28 @@ def run_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Thread:
     worker = Thread(daemon=False, target=func, args=args, kwargs=kwargs)
     worker.start()
     return worker
+
+@deprecated("Use Q.put(data) instead.")
+def put_msg(q: MsgQ, kind: str = "", data: Any = None, order: int = 0) -> MsgQ:
+    """Put a message into a queue.
+
+    Args:
+        q (Queue[Msg]): queue to add message to
+        kind (str, optional): kind of message. Defaults to "".
+        data (Any, optional): message data. Defaults to None.
+        order (int, optional): message order. Defaults to 0.
+
+    Returns:
+        Queue[Msg]: queue the message was added to
+
+    .. deprecated:: 2.0.3
+       Use `Q.put` instead.
+    """
+    q.put(Msg(kind=kind, data=data, order=order))
+    return q
+
+
+@deprecated("Use iter(Q) instead.")
 def iter_msg(
     q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
 ) -> Iterator[Msg]:
@@ -136,11 +158,15 @@ def iter_msg(
 
     Args:
         q (Queue[Msg]): queue to read from
-        block (bool, optional): block if necessary until an item is available. Defaults to True.
-        timeout (float, optional): time in seconds to poll the queue. Defaults to 0.05.
+        block (bool, optional): block until an item is available. Defaults to `True`.
+        timeout (float, optional): time in seconds to poll the queue.
+            Defaults to `0.05`.
 
     Yields:
         Iterator[Msg]: iterate over messages in the queue
+
+    .. deprecated:: 2.0.3
+       Use `iter(Q)` instead.
     """
     while True:
         try:
@@ -158,6 +184,7 @@ def iter_msg(
             continue
 
 
+@deprecated("Use Q.items() instead.")
 def iter_q(q: MsgQ) -> Iterator[Msg]:
     """End a queue and iterate over its current messages.
 
@@ -166,11 +193,15 @@ def iter_q(q: MsgQ) -> Iterator[Msg]:
 
     Yields:
         Iterator[Msg]: iterate over messages in the queue
+
+    .. deprecated:: 2.0.3
+       Use `Q.items()` instead.
     """
     endq(q)  # ensure queue has an end
     return iter_msg(q, block=False, timeout=None)
 
 
+@deprecated("Use Q.sorted() instead.")
 def sortiter(
     items: Iterable[Any],
     start: int = 0,
@@ -189,6 +220,9 @@ def sortiter(
 
     Yields:
         Iterator[Any]: item yielded in the correct order
+
+    .. deprecated:: 2.0.3
+       Use `Q.sorted()` instead.
     """
     prev = start - 1
     waiting: List[Any] = []
@@ -210,38 +244,7 @@ def sortiter(
         yield waiting.pop()
 
 
-def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Process:
-    """Run a function as a subprocess.
-
-    Args:
-        func (Callable): function to run in each subprocess
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
-
-    Returns:
-        Process: subprocess that was started
-    """
-    proc = Process(daemon=True, target=func, args=args, kwargs=kwargs)
-    proc.start()
-    return proc
-
-
-def put_msg(q: MsgQ, kind: str = "", data: Any = None, order: int = 0) -> MsgQ:
-    """Put a message into a queue.
-
-    Args:
-        q (Queue[Msg]): queue to add message to
-        kind (str, optional): kind of message. Defaults to "".
-        data (Any, optional): message data. Defaults to None.
-        order (int, optional): message order. Defaults to 0.
-
-    Returns:
-        Queue[Msg]: queue the message was added to
-    """
-    q.put(Msg(kind, data, order))
-    return q
-
-
+@deprecated("Use Q.end() instead.")
 def endq(q: MsgQ) -> MsgQ:
     """Add a message to a queue to indicate its end.
 
@@ -250,27 +253,156 @@ def endq(q: MsgQ) -> MsgQ:
 
     Returns:
         Queue[Msg]: queue the message was sent on
+
+    .. deprecated:: 2.0.3
+       Use `Q.end()` instead.
     """
     q.put(END_MSG)
     return q
 
 
-def endq_and_wait(q: MsgQ, procs: Union[List[Process], Process]) -> List[Process]:
-    """Notify a list of processes to end and wait for them to join.
+@deprecated("Use Q.stop(workers) instead.")
+def endq_and_wait(q: MsgQ, workers: SomeWorkers) -> Workers:
+    """Notify a list of workers to end and wait for them to join.
 
     Args:
-        q (Queue[Msg]): subprocess input queue
-        procs (Union[Process, List[Process]]): processes to wait for
+        q (Queue[Msg]): worker queue
+        workers (Worker, Sequence[Worker]): workers to wait for
 
     Returns:
-        List[Process]: subprocesses that ended
-    """
-    if isinstance(procs, Process):
-        procs = [procs]
+        List[Thread|Process]: threads or subprocesses that ended
 
-    for _ in range(len(procs)):
+    .. deprecated:: 2.0.3
+       Use `Q.stop()` instead.
+    """
+    # We're a little verbose to placate the type-checker.
+    _workers: Workers
+    if isinstance(workers, Thread):
+        _workers = [workers]
+    elif isinstance(workers, Process):
+        _workers = [workers]
+    else:
+        _workers = workers
+
+    for _ in range(len(_workers)):
         endq(q)
 
-    for proc in procs:
-        proc.join()
-    return procs
+    for worker in _workers:
+        worker.join()
+    return _workers
+
+
+class Q:
+    """A simple message queue."""
+
+    q: MsgQ
+    """Wrapped queue."""
+
+    _items: Optional[List[Msg]] = None
+    """Cache of queue messages when calling `.items(cache=True)`."""
+
+    def __init__(self, thread: bool = False, *args: Any, **kwargs: Any):
+        """Construct a queue wrapper.
+
+        Args:
+            thread (bool, optional): If `True`, construct a lighter-weight
+                `Queue` that is thread-safe. Otherwise, construct a full
+                `multiprocessing.Queue`. Defaults to `False`.
+
+            *args, *kwargs: Additional arguments passed to the `Queue` constructor.
+        """
+        if thread:
+            self.q = ThreadSafeQueue(*args, **kwargs)
+        else:
+            self.q = Queue(*args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate properties to the underlying queue.
+
+        Args:
+            name (str): name of the attribute to access
+
+        Returns:
+            Any: attribute from the queue
+        """
+        return getattr(self.q, name)
+
+    def __iter__(self) -> Iterator[Msg]:
+        """Iterate over messages in a queue until `END_MSG` is received.
+
+        Yields:
+            Iterator[Msg]: iterate over messages in the queue
+        """
+        return iter_msg(self.q)
+
+    def items(self, cache: bool = False, sort: bool = False) -> Iterator[Msg]:
+        """End a queue and read all the current messages.
+
+        Args:
+            cache (bool, optional): if `True`, cache the messages. This allows you
+                to call this method multiple times to get the same messages.
+                Defaults to `False`.
+
+            sort (bool, optional): if `True` messages are sorted by `Msg.order`.
+                Defaults to `False`.
+
+        Yields:
+            Iterator[Msg]: iterate over messages in the queue
+        """
+        if cache:
+            if self._items is None:  # need to build a cache
+                self.end()
+                self._items = list(self.sorted() if sort else self)
+            return iter(self._items)
+
+        # not cached
+        self.end()
+        return self.sorted() if sort else iter(self)
+
+    def sorted(self) -> Iterator[Msg]:
+        """Iterate over messages in a sorted order.
+
+        See: `ezq.sortiter`
+
+        Yields:
+            Iterator[Msg]: sorted message iterator
+        """
+        return sortiter(self)
+
+    def put(self, data: Any = None, kind: str = "", order: int = 0) -> Self:
+        """Put a message on the queue.
+
+        Args:
+            data (Any, optional): message data. Defaults to `None`.
+            kind (str, optional): kind of message. Defaults to `""`.
+            order (int, optional): message order. Defaults to `0`.
+
+        Returns:
+            Self: self for chaining
+        """
+        if isinstance(data, Msg):
+            self.q.put_nowait(data)
+        else:
+            self.q.put_nowait(Msg(data=data, kind=kind, order=order))
+        return self
+
+    def end(self) -> Self:
+        """Add the `END_MSG` to indicate the end of work.
+
+        Returns:
+            Self: self for chaining
+        """
+        self.q.put(END_MSG)
+        return self
+
+    def stop(self, workers: SomeWorkers) -> Self:
+        """Use this queue to notify workers to end and wait for them to join.
+
+        Args:
+            workers (Worker, Sequence[Worker]): workers to wait for
+
+        Returns:
+            Self: self for chaining
+        """
+        endq_and_wait(self.q, workers)
+        return self
