@@ -73,14 +73,16 @@ python setup.py build
 twine check dist/*
 ```
 
-## Push
+## Commit & Push
 
 ```bash
+git commit -m "release: 2.0.3"
 git tag 2.0.3
 git push
 git push --tags
 git checkout main
 git merge --no-ff --no-edit prod
+git push
 ```
 
 ## Create Release
