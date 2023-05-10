@@ -6,12 +6,13 @@
 from pathlib import Path
 import site
 import sys
+from typing import Dict
 
 # lib
 from setuptools import setup, find_namespace_packages
 
 # pkg
-pkg = {}
+pkg: Dict[str, str] = {}
 here = Path(__file__).parent.resolve()
 exec(  # pylint: disable=exec-used
     (here / "src" / "ezq" / "__about__.py").open(encoding="utf-8").read(), pkg
