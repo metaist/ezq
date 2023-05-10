@@ -13,6 +13,7 @@ pytest-cov = "*"
 ruff = "*"
 
 [packages]
+typing_extensions = "*"
 
 [requires]
 python_version = "3.8"
