@@ -1,41 +1,41 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Example of ezq using collatz conjecture-like work.
+"""Compute the next Collatz number for numbers 0-39.
 
-Note this example doesn't actually do anything useful. It's for illustrative purposes only.
+NOTE: I know this isn't really the Collatz algorithm.
 """
 
 import ezq
 
 
-def printer(write_q):
+def printer(out: ezq.Q) -> None:
     """Print results in increasing order."""
-    for msg in ezq.sortiter(ezq.iter_msg(write_q)):
+    for msg in out.sorted():
         print(msg.data)
 
 
-def collatz(read_q, write_q):
+def collatz(q: ezq.Q, out: ezq.Q) -> None:
     """Read numbers and compute values."""
-    for msg in ezq.iter_msg(read_q):
-        num = msg.data
+    for msg in q:
+        num = float(msg.data)
         if msg.kind == "EVEN":
-            ezq.put_msg(write_q, data=(num, num / 2), order=msg.order)
+            out.put((num, num / 2), order=msg.order)
         elif msg.kind == "ODD":
-            ezq.put_msg(write_q, data=(num, 3 * num + 1), order=msg.order)
+            out.put((num, 3 * num + 1), order=msg.order)
 
 
-def main():
-    """Run several subprocesses."""
-    read_q, write_q = ezq.Queue(), ezq.Queue()
-    readers = [ezq.run(collatz, read_q, write_q) for _ in range(ezq.NUM_CPUS - 1)]
-    writers = ezq.run(printer, write_q)
+def main() -> None:
+    """Run several threads with a subprocess for printing."""
+    q, out = ezq.Q(thread=True), ezq.Q()
+    readers = [ezq.run_thread(collatz, q, out) for _ in range(ezq.NUM_THREADS)]
+    writer = ezq.run(printer, out)
 
-    for i in range(40):
-        kind = "EVEN" if i % 2 == 0 else "ODD"
-        ezq.put_msg(read_q, kind=kind, data=i, order=i)
+    for num in range(40):
+        kind = "EVEN" if num % 2 == 0 else "ODD"
+        q.put(num, kind=kind, order=num)
 
-    ezq.endq_and_wait(read_q, readers)
-    ezq.endq_and_wait(write_q, writers)
+    q.stop(readers)
+    out.stop(writer)
 
 
 if __name__ == "__main__":

@@ -17,8 +17,9 @@ __pycache__
 
 # test
 .coverage
-.pytest_cache
 .mypy_cache
+.pytest_cache
+.ruff_cache
 /htmlcov
 
 # build

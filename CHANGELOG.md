@@ -9,6 +9,18 @@ The format is based on [Keep a Changelog] and this project adheres to [Semantic 
 
 ---
 
+## [Unreleased]
+
+[unreleased]: https://github.com/metaist/ezq/compare/production...main
+
+These are changes that are on `main` that are not yet in `production`.
+
+**Changed**
+
+- `sortiter` now sorts the list of waiting messages in place to improve performance (~50%).
+
+---
+
 ## [2.0.2] - 2021-08-24T17:25:52Z
 
 [2.0.2]: https://github.com/metaist/ezq/compare/2.0.1...2.0.2
