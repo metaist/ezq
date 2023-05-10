@@ -1,6 +1,6 @@
 # ezq
 
-_Simple wrappers for python multiprocessing._
+_Simple wrappers for python multiprocessing and threading._
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/metaist/ezq/.github/workflows/ci.yaml?branch=main&style=for-the-badge)](https://github.com/metaist/ezq/actions)
 [![ezq on PyPI](https://img.shields.io/pypi/v/ezq.svg?color=blue&style=for-the-badge)](https://pypi.org/project/ezq)
@@ -13,10 +13,11 @@ _Simple wrappers for python multiprocessing._
 
 ## Why?
 
-Even though [`multiprocessing`][1] has `Pool` and `Queue`, it's surprisingly difficult
-to get started to do slightly more complex workflows. `ezq` makes it easy to connect subprocesses (workers) using queues.
+`ezq` makes it easy to connect subprocesses and threads (both considered "workers") using queues with a simpler API than [`concurrent.futures`][1], [`multiprocessing`][2], or [`threading`][3].
 
-[1]: https://docs.python.org/3/library/multiprocessing.html
+[1]: https://docs.python.org/3/library/concurrent.futures.html
+[2]: https://docs.python.org/3/library/multiprocessing.html
+[3]: https://docs.python.org/3/library/threading.html
 
 ## Install
 
@@ -24,43 +25,54 @@ to get started to do slightly more complex workflows. `ezq` makes it easy to con
 pip install ezq
 ```
 
+## Example: Quick Start
+
+If you just want to apply a function to some inputs, you can use `ezq.map()` to run it on all available CPUs and get the results back.
+
+```python
+import ezq
+print(list(ezq.map(lambda x: x * 2, range(6))))
+# => [0, 2, 4, 6, 8, 10]
+```
+
 ## Example: Sum Messages
 
-Here's a simple example of a worker that reads from an input queue, sums up the
-messages, and puts the result on an output queue.
+Here's a simple example of a worker that reads from an input queue, sums up the messages, and puts the result on an output queue.
 
 ```python
 import ezq
 
 
-def worker(in_q, out_q):
-    """Add up all the messges."""
-    count = 0
-    for msg in ezq.iter_msg(in_q):
-        # you could check `msg.kind` if there's different kinds of work
-        count += msg.data
+def worker(q, out):
+    """Add up all the messages."""
+    total = 0
+    for msg in q:  # read a message from the queue
+        total += msg.data
 
-    # when `in_q` is done, put the result on `out_q`
-    ezq.put_msg(out_q, data=count)
+    # after reading all the messages, write the total
+    out.put(total)
 
 
 def main():
     """Run several workers."""
-    in_q = ezq.Queue()  # to send work
-    out_q = ezq.Queue()  # to get results
+    # Step 1: Creates the queues and start the workers.
+    q, out = ezq.Q(), ezq.Q()  # input & output queues
+    workers = [ezq.run(worker, q, out) for _ in range(ezq.NUM_CPUS)]
+    # workers are all running
 
-    workers = [ezq.run(worker, in_q, out_q) for _ in range(ezq.NUM_CPUS)]
-    # workers started
-
+    # Step 2: Send work to the workers.
     for i in range(1000):
-        ezq.put_msg(in_q, data=i)  # send work
+        q.put(i)  # send work
 
-    ezq.endq_and_wait(in_q, workers)
-    # all workers are done
+    # Step 3: Tell the workers to finish.
+    q.stop(workers)
+    # workers are all stopped
 
-    result = sum(msg.data for msg in ezq.iter_q(out_q))
-    assert result == sum(x for x in range(1000))
-    print(result)
+    # Step 4: Process the results.
+    want = sum(range(1000))
+    have = sum(msg.data for msg in out.items())
+    assert have == want
+    print(have)
 
 
 if __name__ == "__main__":
@@ -69,121 +81,159 @@ if __name__ == "__main__":
 
 ## Typical worker lifecycle
 
-- The main process [creates workers](#create-workers) with `ezq.run`.
+- The main process [creates queues](#create-queues) with `ezq.Q`.
 
-- The main process [sends data](#send-data) with `ezq.put_msg`.
+- The main process [creates workers](#create-workers) with `ezq.run` or `ezq.run_thread`.
 
-- The worker [iterates over the queue](#iterate-over-messages) with `ezq.iter_msg`.
+- The main process [sends data](#send-data) using `Q.put`.
 
-- The main process [ends the queue](#end-the-queue) with `ezq.endq_and_wait`.
+- The worker [iterates over the queue](#iterate-over-messages).
+
+- The main process [ends the queue](#end-the-queue) with `Q.stop`.
 
 - The worker returns when it reaches the end of the queue.
+
+- (_Optional_) The main process [processes the results](#process-results).
+
+## `Process` vs `Thread`
+
+`ezq` supports two kinds of workers: `Process` and `Thread`. There is a lot of existing discussion about when to use which approach, but a general rule of thumb is:
+
+- `Process` is for _parallelism_ so you can use multiple CPUs at once. Ideal for **CPU-bound** tasks like doing lots of mathematical calculations.
+
+- `Thread` is for _concurrency_ so you can use a single CPU to do multiple things. Ideal for **I/O-bound** tasks like waiting for a disk, database, or network.
+
+Some more differences:
+
+- **Shared memory**: Each `Process` worker has [data sent to it via `pickle`](#beware-pickle) and it doesn't share data with other workers. By contrast, each `Thread` worker shares its memory with all other workers on the same CPU, so it can [accidentally change global state](#beware-shared-state).
+
+- **Queue overhead**: `ezq.Q` [has more overhead](#create-queues) for `Process` workers than `Thread` workers.
+
+- **Creating sub-workers**: `Process` and `Thread` workers can create additional `Thread` workers, but [they cannot create additional `Process` workers](#create-workers).
+
+## Create queues
+
+In the main process, create the queues you'll need. Here are my common situations:
+
+- **0 queues**: I'm using a simple function and can ask `ezq.map` to make the queues for me.
+
+- **1 queue**: the worker reads from an input queue and persists the result somewhere else (e.g., writing to disk, making a network call, running some other program).
+
+- **2 queues** (most common): the worker reads from an input queue and write the results to an output queue.
+
+- **3 queues**: multiple stages of work are happening where workers are reading from one queue and writing to another queue for another worker to process.
+
+**NOTE:** If you're using `Thread` workers, you can save some overhead by passing `thread=True`. This lightweight queue also doesn't use `pickle`, so you can use it to pass hard-to-pickle things (e.g., `lambda`).
+
+```python
+q, out = ezq.Q(), ezq.Q() # most common
+q2 = ez.Q(thread=True) # only ok for Thread workers
+```
 
 ## A worker is just a function
 
 In general, there's nothing special about a worker function, but note:
 
-- All arguments are passed through `pickle` first ([see below](#beware-pickle)).
+- If you're using `Process` workers, all arguments are [passed through `pickle` first](#beware-pickle).
 
-- We don't currently do anything with the return value of this function. You'll
-  need an output queue to return data back to the main process.
+- We don't currently do anything with the return value of this function (unless you use `ezq.map()`). You'll need an output queue to return data back to the main process/thread.
 
 ## Create workers
 
-In the main process, create workers using `ezq.run` which takes a function and
-any additional parameters. Note that **workers cannot create additional workers**.
+In the main process, create workers using `ezq.run` or `ezq.run_thread` which take a function and any additional parameters. Typically, you'll pass the queues you created to the workers at this point.
+
+**NOTE:** `Process` and `Thread` workers can create additional `Thread` workers, but **they cannot create additional `Process` workers**.
 
 ## Send data
 
-Once you've started the workers, you send them data by calling with `ezq.put_msg`
-which creates `ezq.Msg` objects and puts them in the queue. There are three
-attributes that are sent (all optional):
+Once you've created the workers, you send them data with `Q.put` which creates `ezq.Msg` objects and puts them in the queue. Each message has three attributes (all optional):
 
-- `kind` - a string that indicates what kind of message it is.
-  You can use this to send multiple kinds of work to the same worker.
-  Note that the special `END` kind is used to indicate the end of a queue
-  (that's what `ezq.endq` sends).
+- `data: Any` - This is the data you want the worker to work on.
 
-- `data` - anything that can be pickled.
-  This is the data you want the worker to work on.
+- `kind: str` - You can use this to send multiple kinds of work to the same worker. Note that the special `END` kind is used to indicate the end of a queue.
 
-- `order` - an integer that indicates the message order.
-  This can help you reorder results or ensure that messages from a queue are
-  read in a particular order (that's what `ezq.sortiter` uses).
+- `order: int` - This is the message order which can help you reorder results or ensure that messages from a queue are read in a particular order (that's what `Q.sorted()` uses).
 
 ## Beware `pickle`
 
-All parameters sent to workers in `ezq.run` and any values put in queues
-using `ezq.put_msg` are first passed to `pickle` by [`multiprocessing`][1]
-so anything that cannot be pickled (e.g., database connection)
-cannot be passed to workers.
+If you are using `Process` workers, everything passed to the worker (arguments, messages) is first passed to `pickle` by [`multiprocessing`][1]. Anything that cannot be pickled (e.g., `lambda` functions, database connections), cannot be passed to `Process` workers.
+
+## Beware shared state
+
+If you are using `Thread` workers, workers can share certain variables, so you need to be careful of how variables are access to avoid accidentally corrupting data.
 
 ## Iterate over messages
 
-Inside the worker, use `ezq.iter_msg` to iterate over the messages in the queue
-until the queue ends ([see below](#end-the-queue)). If the messages need to be
-sorted first, wrap the call with `ezq.sortiter`.
+Inside the worker, iterate over the queue to read each message until the queue ends ([see below](#end-the-queue)). If the messages need to be processed in order, use `Q.sorted`.
 
-If you need to read all the messages currently in the queue, you can use `ezq.iter_q`
-which will immediately end the queue and return results. You can also wrap this call
-in `ezq.sortiter` if you need the messages to be sorted first.
+```python
+for msg in q: # read each message until the queue ends
+  ...
+
+for msg in q.sorted(): # read each message in order
+  ...
+```
 
 ## End the queue
 
 After the main process has sent all the data to the workers, it needs to indicate
-that there's no additional work to be done. This is done by putting a special
-`ezq.END_MSG` in the queue which is processed by `ezq.iter_msg` and never seen by
-the workers.
+that there's no additional work to be done. This is done by calling `Q.stop()` using the input queue that the workers are reading from and passing the list of workers to wait for.
 
-There are three ways a queue can be ended:
+In some rare situations, you can use `Q.end()` to explicitly end the queue.
 
-- `ezq.endq` - Explicitly end a queue. You normally won't need to call this.
+## Process results
 
-- `ezq.iter_q` - End a queue and iterate over the current messages. This is
-  useful when processing an output queue back in the main process.
+If you have an output queue, you may want to to process the results. You can use `Q.items()` to end the queue and read the current messages.
 
-- `ezq.endq_and_wait` - End a queue and wait for the workers to finish. The most
-  common way to end a queue. You'll need to call this before the end of your main
-  process in order to get results back from all the workers.
+```python
+import ezq
+out = ezq.Q()
+...
+result = [msg.data for msg in out.items()]
+# OR
+result = [msg.data for msg in out.items(sort=True)] # sorted by Msg.order
+# OR
+result = [msg.data for msg in out.items(cache=True)] # cache the messages
+```
 
 ## Example: Read and Write Queues
 
-In this example, several workers read from a queue, process data, and then write to a
-different queue that a single worker uses to print to the screen sorting the results as
-it goes along. When interfacing with a single I/O device (e.g., screen, file) we typically use a single worker to avoid clashes or overwriting.
+In this example, several workers read from a queue, process data, and then write to a different queue that a single worker uses to print to the screen sorting the results as it goes along.
+
+Note that we use a single `writer` to avoid clashes or overwriting.
 
 ```python
 import ezq
 
 
-def printer(write_q):
+def printer(out: ezq.Q) -> None:
     """Print results in increasing order."""
-    for msg in ezq.sortiter(ezq.iter_msg(write_q)):
+    for msg in out.sorted():
         print(msg.data)
 
 
-def collatz(read_q, write_q):
+def collatz(q: ezq.Q, out: ezq.Q) -> None:
     """Read numbers and compute values."""
-    for msg in ezq.iter_msg(read_q):
-        num = msg.data
+    for msg in q:
+        num = float(msg.data)
         if msg.kind == "EVEN":
-            ezq.put_msg(write_q, data=(num, num / 2), order=msg.order)
+            out.put((num, num / 2), order=msg.order)
         elif msg.kind == "ODD":
-            ezq.put_msg(write_q, data=(num, 3 * num + 1), order=msg.order)
+            out.put((num, 3 * num + 1), order=msg.order)
 
 
-def main():
-    """Run several subprocesses."""
-    read_q, write_q = ezq.Queue(), ezq.Queue()
-    readers = [ezq.run(collatz, read_q, write_q) for _ in range(ezq.NUM_CPUS - 1)]
-    writers = ezq.run(printer, write_q)
+def main() -> None:
+    """Run several threads with a subprocess for printing."""
+    q, out = ezq.Q(thread=True), ezq.Q()
+    readers = [ezq.run_thread(collatz, q, out) for _ in range(ezq.NUM_THREADS)]
+    writer = ezq.run(printer, out)
 
-    for i in range(40):
-        kind = "EVEN" if i % 2 == 0 else "ODD"
-        ezq.put_msg(read_q, kind=kind, data=i, order=i)
+    for num in range(40):
+        kind = "EVEN" if num % 2 == 0 else "ODD"
+        q.put(num, kind=kind, order=num)
 
-    ezq.endq_and_wait(read_q, readers)
-    ezq.endq_and_wait(write_q, writers)
+    q.stop(readers)
+    out.stop(writer)
 
 
 if __name__ == "__main__":
