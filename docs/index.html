@@ -762,7 +762,7 @@ class Q:
 </details>
 </dd>
 <dt id="ezq.endq"><code class="name flex">
-<span>def <span class="ident">endq</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>>) ‑> <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>></span>
+<span>def <span class="ident">endq</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>) ‑> <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Add a message to a queue to indicate its end.</p>
@@ -802,7 +802,7 @@ def endq(q: MsgQ) -&gt; MsgQ:
 </details>
 </dd>
 <dt id="ezq.endq_and_wait"><code class="name flex">
-<span>def <span class="ident">endq_and_wait</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>>, workers: Union[threading.Thread, multiprocessing.context.Process, Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]) ‑> Union[Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]</span>
+<span>def <span class="ident">endq_and_wait</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>, workers: Union[threading.Thread, multiprocessing.context.Process, Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]) ‑> Union[Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Notify a list of workers to end and wait for them to join.</p>
@@ -855,7 +855,7 @@ def endq_and_wait(q: MsgQ, workers: SomeWorkers) -&gt; Workers:
 </details>
 </dd>
 <dt id="ezq.iter_msg"><code class="name flex">
-<span>def <span class="ident">iter_msg</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>>, block: bool = True, timeout: Optional[float] = 0.05) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
+<span>def <span class="ident">iter_msg</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>, block: bool = True, timeout: Optional[float] = 0.05) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Iterate over messages in a queue.</p>
@@ -917,7 +917,7 @@ def iter_msg(
 </details>
 </dd>
 <dt id="ezq.iter_q"><code class="name flex">
-<span>def <span class="ident">iter_q</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>>) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
+<span>def <span class="ident">iter_q</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>End a queue and iterate over its current messages.</p>
@@ -1026,7 +1026,7 @@ Defaults to <code>False</code>.</dd>
 </details>
 </dd>
 <dt id="ezq.put_msg"><code class="name flex">
-<span>def <span class="ident">put_msg</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>>, kind: str = '', data: Any = None, order: int = 0) ‑> <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>></span>
+<span>def <span class="ident">put_msg</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>, kind: str = '', data: Any = None, order: int = 0) ‑> <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Put a message into a queue.</p>
@@ -1404,7 +1404,7 @@ def sortiter(
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="ezq.Q.q"><code class="name">var <span class="ident">q</span> : <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fa786a6ba30>></code></dt>
+<dt id="ezq.Q.q"><code class="name">var <span class="ident">q</span> : <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>></code></dt>
 <dd>
 <div class="desc"><p>Wrapped queue.</p></div>
 </dd>
