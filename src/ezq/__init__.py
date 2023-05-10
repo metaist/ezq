@@ -7,30 +7,50 @@
 """
 
 __all__ = (
-    "Process",
-    "Queue",
+    "__author__",
+    "__copyright__",
+    "__email__",
+    "__license__",
+    "__pubdate__",
     "__url__",
     "__version__",
-    "__pubdate__",
-    "__author__",
-    "__email__",
-    "__copyright__",
-    "__license__",
+    #
+    ## imported classes ##
+    # "Process",  # deprecated
+    "Queue",  # deprecated
+    # "Thread",  # deprecated
+    # "ThreadSafeQueue",  # deprecated
+    #
+    ## types ##
+    # "MsgQ",
+    # "Worker",
+    # "Workers",
+    # "SomeWorkers",
+    #
+    ## classes ##
     "Msg",
-    "END_MSG",
+    "Q",
+    #
+    ## constants ##
     "NUM_CPUS",
-    "iter_msg",
-    "iter_q",
-    "sortiter",
+    "NUM_THREADS",
+    "END_MSG",
+    #
+    ## functions ##
     "run",
-    "put_msg",
-    "endq",
-    "endq_and_wait",
+    "run_thread",
+    "map",
+    "put_msg",  # deprecated
+    "iter_msg",  # deprecated
+    "iter_q",  # deprecated
+    "sortiter",  # deprecated
+    "endq",  # deprecated
+    "endq_and_wait",  # deprecated
 )
 
 # native
 from dataclasses import dataclass
-from multiprocessing import Process, Queue, queues
+from multiprocessing import Process, Queue
 from operator import attrgetter
 from os import cpu_count
 from queue import Empty, Queue as ThreadSafeQueue
@@ -40,11 +60,13 @@ from typing import (
     Callable,
     Iterable,
     List,
+    Sequence,
     Iterator,
     Optional,
     Union,
     TYPE_CHECKING,
 )
+from typing_extensions import deprecated, Self
 
 
 # pkg
@@ -64,8 +86,13 @@ class Msg:
     """Message for a queue."""
 
     kind: str = ""
+    """Optional marker of message type."""
+
     data: Any = None
+    """Message data to be transmitted."""
+
     order: int = 0
+    """Optional ordering of messages."""
 
 
 END_MSG: Msg = Msg(kind="END")
@@ -129,6 +156,51 @@ def run_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Thread:
     worker = Thread(daemon=False, target=func, args=args, kwargs=kwargs)
     worker.start()
     return worker
+
+
+map_ = map  # save the value of the builtin
+
+
+def map(
+    func: Callable[..., Any],
+    *args: Iterable[Any],
+    num: Optional[int] = None,
+    thread: bool = False,
+) -> Iterator[Any]:
+    """Call a function with arguments using multiple workers.
+
+    Args:
+        func (Callable): function to call
+        *args (list[Any]): arguments to `func`. If multiple lists are provided,
+            they will be passed to `zip` first.
+        num (int, optional): number of workers. If `None`, `NUM_CPUS` or
+            `NUM_THREADS` will be used as appropriate. Defaults to `None`.
+        thread (bool, optional): whether to use threads instead of processes.
+            Defaults to `False`.
+
+    Yields:
+        Any: results from applying the function to the arguments
+    """
+    q, out = Q(thread=thread), Q(thread=thread)
+
+    def _worker(_q: Q, _out: Q) -> None:
+        """Internal worker that calls `func`."""
+        for msg in _q.sorted():
+            _out.put(data=func(*msg.data), order=msg.order)
+
+    workers: Workers
+    if thread:
+        workers = [run_thread(_worker, q, out) for _ in range(num or NUM_THREADS)]
+    else:
+        workers = [run(_worker, q, out) for _ in range(num or NUM_CPUS)]
+
+    for order, value in enumerate(zip(*args)):
+        q.put(value, order=order)
+    q.stop(workers)
+
+    for msg in out.end().sorted():
+        yield msg.data
+
 
 @deprecated("Use Q.put(data) instead.")
 def put_msg(q: MsgQ, kind: str = "", data: Any = None, order: int = 0) -> MsgQ:
