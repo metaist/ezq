@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Simple wrapper for python multiprocessing.
+"""Simple wrapper for python `multiprocessing` and `threading`.
 
 .. include:: ../../README.md
    :start-line: 4
@@ -33,7 +33,8 @@ from dataclasses import dataclass
 from multiprocessing import Process, Queue, queues
 from operator import attrgetter
 from os import cpu_count
-from queue import Empty
+from queue import Empty, Queue as ThreadSafeQueue
+from threading import Thread
 from typing import (
     Any,
     Callable,
@@ -70,18 +71,64 @@ class Msg:
 END_MSG: Msg = Msg(kind="END")
 """Message that indicates no future messages will be sent."""
 
-
 NUM_CPUS: int = cpu_count() or 1
 """Number of CPUs on this machine."""
 
-# NOTE: The python queue.Queue is not properly a generic.
+NUM_THREADS: int = min(32, NUM_CPUS + 4)
+"""Default number of threads (up to 32).
+
+See: [CPython's default for this value][1].
+
+[1]: https://github.com/python/cpython/blob/a635d6386041a2971cf1d39837188ffb8139bcc7/Lib/concurrent/futures/thread.py#L142
+"""
+
+# NOTE: The python `queue.Queue` is not properly a generic.
 # See: https://stackoverflow.com/a/48554601
 if TYPE_CHECKING:  # pragma: no cover
-    MsgQ = queues.Queue[Msg]  # pylint: disable=unsubscriptable-object
+    MsgQ = Union[Queue[Msg], ThreadSafeQueue]  # pylint: disable=unsubscriptable-object
 else:
-    MsgQ = queues.Queue
+    MsgQ = Queue
+
+Worker = Union[Thread, Process]
+"""A thread or a process."""
+
+Workers = Union[Sequence[Thread], Sequence[Process]]
+"""Multiple threads or processes."""
+
+SomeWorkers = Union[Worker, Workers]
+"""One or more threads or processes."""
 
 
+def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Process:
+    """Run a function as a subprocess.
+
+    Args:
+        func (Callable): function to run in each subprocess
+        *args (Any): additional positional arguments to `func`.
+        **kwargs (Any): additional keyword arguments to `func`.
+
+    Returns:
+        Process: subprocess that was started
+    """
+    worker = Process(daemon=True, target=func, args=args, kwargs=kwargs)
+    worker.start()
+    return worker
+
+
+def run_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Thread:
+    """Run a function as a thread.
+
+    Args:
+        func (Callable): function to run in each thread
+        *args (Any): additional positional arguments to `func`.
+        **kwargs (Any): additional keyword arguments to `func`.
+
+    Returns:
+        Thread: thread that was started
+    """
+    worker = Thread(daemon=False, target=func, args=args, kwargs=kwargs)
+    worker.start()
+    return worker
 def iter_msg(
     q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
 ) -> Iterator[Msg]:
