@@ -48,7 +48,7 @@ jobs:
 
       - name: Static type check with mypy
         run: |
-          mypy --verbose --strict --install-types --non-interactive src/ezq
+          mypy --verbose --strict --install-types --non-interactive src test examples
 
       - name: Test with pytest
         run: |
