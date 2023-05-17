@@ -4,6 +4,7 @@ _Simple wrappers for python multiprocessing and threading._
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/metaist/ezq/.github/workflows/ci.yaml?branch=main&style=for-the-badge)](https://github.com/metaist/ezq/actions)
 [![ezq on PyPI](https://img.shields.io/pypi/v/ezq.svg?color=blue&style=for-the-badge)](https://pypi.org/project/ezq)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/ezq?style=for-the-badge)](https://pypi.org/project/ezq)
 
 [Changelog] - [Issues] - [Documentation]
 
