@@ -106,46 +106,79 @@ ContextName = Literal["process", "thread"]
 """Execution context names."""
 
 
-def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Process:
+class Worker:
+    """A function running in a `Process` or `Thread`."""
+
+    worker: Context
+    """Execution context."""
+
+    @staticmethod
+    def process(task: Task, *args, **kwargs) -> "Worker":
+        return Worker(Process(daemon=True, target=task, args=args, kwargs=kwargs))
+
+    @staticmethod
+    def thread(task: Task, *args, **kwargs) -> "Worker":
+        return Worker(Thread(daemon=False, target=task, args=args, kwargs=kwargs))
+
+    def __init__(self, context: Union[Process, Thread]):
+        self.worker = context
+        self.worker.start()
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate properties to the underlying task.
+
+        Args:
+            name (str): attribute name
+
+        Returns:
+            Any: attribute from the task
+        """
+        return getattr(self.worker, name)
+
+
+def run(task: Task, *args: Any, **kwargs: Any) -> Worker:
     """Run a function as a subprocess.
 
     Args:
-        func (Callable): function to run in each subprocess
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
+        task (Task): function to run in each subprocess
+
+        *args (Any): additional positional arguments to `task`.
+
+        **kwargs (Any): additional keyword arguments to `task`.
 
     Returns:
-        Process: subprocess that was started
+        Worker: worker started in a subprocess
+
+    .. changed:: 2.0.4
+       This function now returns a `Worker` instead of a `Process`.
     """
-    worker = Process(daemon=True, target=func, args=args, kwargs=kwargs)
-    worker.start()
-    return worker
+    return Worker.process(task, *args, **kwargs)
 
 
-def run_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Thread:
+def run_thread(task: Task, *args: Any, **kwargs: Any) -> Worker:
     """Run a function as a thread.
 
     Args:
-        func (Callable): function to run in each thread
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
+        task (Task): function to run in each thread
+
+        *args (Any): additional positional arguments to `task`.
+
+        **kwargs (Any): additional keyword arguments to `task`.
 
     Returns:
-        Thread: thread that was started
+        Worker: worker started in a thread
+
+    .. changed:: 2.0.4
+       This function now returns a `Worker` instead of a `Thread`.
     """
-    worker = Thread(daemon=False, target=func, args=args, kwargs=kwargs)
-    worker.start()
-    return worker
-
-
-map_ = map  # save the value of the builtin
+    return Worker.thread(task, *args, **kwargs)
 
 
 def map(
-    func: Callable[..., Any],
+    task: Task,
     *args: Iterable[Any],
     num: Optional[int] = None,
-    thread: bool = False,
+    kind: ContextName = "process",
 ) -> Iterator[Any]:
     """Call a function with arguments using multiple workers.
 
@@ -155,24 +188,25 @@ def map(
             they will be passed to `zip` first.
         num (int, optional): number of workers. If `None`, `NUM_CPUS` or
             `NUM_THREADS` will be used as appropriate. Defaults to `None`.
-        thread (bool, optional): whether to use threads instead of processes.
-            Defaults to `False`.
+        kind (ContextName, optional): execution context to use.
+            Defaults to `"process"`.
 
     Yields:
         Any: results from applying the function to the arguments
     """
-    q, out = Q(thread=thread), Q(thread=thread)
+    q, out = Q(kind=kind), Q(kind=kind)
 
-    def _worker(_q: Q, _out: Q) -> None:
-        """Internal worker that calls `func`."""
+    def worker(_q: Q, _out: Q) -> None:
+        """Internal call to `func`."""
         for msg in _q.sorted():
-            _out.put(data=func(*msg.data), order=msg.order)
+            _out.put(data=task(*msg.data), order=msg.order)
 
-    workers: Workers
-    if thread:
-        workers = [run_thread(_worker, q, out) for _ in range(num or NUM_THREADS)]
-    else:
-        workers = [run(_worker, q, out) for _ in range(num or NUM_CPUS)]
+    if kind == "process":
+        workers = [Worker.process(worker, q, out) for _ in range(num or NUM_CPUS)]
+    elif kind == "thread":
+        workers = [Worker.thread(worker, q, out) for _ in range(num or NUM_THREADS)]
+    else:  # pragma: no cover
+        raise ValueError(f"Unknown worker context: {kind}")
 
     for order, value in enumerate(zip(*args)):
         q.put(value, order=order)
@@ -324,7 +358,7 @@ class Q:
         self.q.put(END_MSG)
         return self
 
-    def stop(self, workers: SomeWorkers) -> Self:
+    def stop(self, workers: Union[Worker, Sequence[Worker]]) -> "Q":
         """Use this queue to notify workers to end and wait for them to join.
 
         Args:
@@ -333,5 +367,12 @@ class Q:
         Returns:
             Self: self for chaining
         """
-        endq_and_wait(self.q, workers)
+        _workers = [workers] if isinstance(workers, Worker) else workers
+
+        for _ in range(len(_workers)):
+            self.end()
+
+        for task in _workers:
+            task.join()
+
         return self

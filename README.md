@@ -131,7 +131,7 @@ q, out = ezq.Q(), ezq.Q() # most common
 q2 = ez.Q(thread=True) # only ok for Thread workers
 ```
 
-## A worker is just a function
+## A worker task is just a function
 
 In general, there's nothing special about a worker function, but note:
 
