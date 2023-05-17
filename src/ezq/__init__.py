@@ -85,11 +85,11 @@ from .__about__ import (
 class Msg:
     """Message for a queue."""
 
-    kind: str = ""
-    """Optional marker of message type."""
-
     data: Any = None
     """Message data to be transmitted."""
+
+    kind: str = ""
+    """Optional marker of message type."""
 
     order: int = 0
     """Optional ordering of messages."""
@@ -441,7 +441,7 @@ class Q:
         """
         return sortiter(self)
 
-    def put(self, data: Any = None, kind: str = "", order: int = 0) -> Self:
+    def put(self, data: Any = None, *, kind: str = "", order: int = 0) -> "Q":
         """Put a message on the queue.
 
         Args:
@@ -453,9 +453,9 @@ class Q:
             Self: self for chaining
         """
         if isinstance(data, Msg):
-            self.q.put_nowait(data)
+            self.q.put(data)
         else:
-            self.q.put_nowait(Msg(data=data, kind=kind, order=order))
+            self.q.put(Msg(data=data, kind=kind, order=order))
         return self
 
     def end(self) -> Self:
