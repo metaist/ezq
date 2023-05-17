@@ -14,20 +14,6 @@ __all__ = (
     "__pubdate__",
     "__url__",
     "__version__",
-    #
-    ## imported classes ##
-    # "Process",  # deprecated
-    "Queue",  # deprecated
-    # "Thread",  # deprecated
-    # "ThreadSafeQueue",  # deprecated
-    #
-    ## types ##
-    # "MsgQ",
-    # "Worker",
-    # "Workers",
-    # "SomeWorkers",
-    #
-    ## classes ##
     "Msg",
     "Q",
     #
@@ -40,12 +26,6 @@ __all__ = (
     "run",
     "run_thread",
     "map",
-    "put_msg",  # deprecated
-    "iter_msg",  # deprecated
-    "iter_q",  # deprecated
-    "sortiter",  # deprecated
-    "endq",  # deprecated
-    "endq_and_wait",  # deprecated
 )
 
 # native
@@ -116,14 +96,14 @@ if TYPE_CHECKING:  # pragma: no cover
 else:
     MsgQ = Queue
 
-Worker = Union[Thread, Process]
-"""A thread or a process."""
+Task = Callable[..., Any]
+"""Task function signature."""
 
-Workers = Union[Sequence[Thread], Sequence[Process]]
-"""Multiple threads or processes."""
+Context = Union[Process, Thread]
+"""Execution contexts."""
 
-SomeWorkers = Union[Worker, Workers]
-"""One or more threads or processes."""
+ContextName = Literal["process", "thread"]
+"""Execution context names."""
 
 
 def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Process:
@@ -202,170 +182,8 @@ def map(
         yield msg.data
 
 
-@deprecated("Use Q.put(data) instead.")
-def put_msg(q: MsgQ, kind: str = "", data: Any = None, order: int = 0) -> MsgQ:
-    """Put a message into a queue.
-
-    Args:
-        q (Queue[Msg]): queue to add message to
-        kind (str, optional): kind of message. Defaults to "".
-        data (Any, optional): message data. Defaults to None.
-        order (int, optional): message order. Defaults to 0.
-
-    Returns:
-        Queue[Msg]: queue the message was added to
-
-    .. deprecated:: 2.0.3
-       Use `Q.put` instead.
-    """
-    q.put(Msg(kind=kind, data=data, order=order))
-    return q
-
-
-@deprecated("Use iter(Q) instead.")
-def iter_msg(
-    q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
-) -> Iterator[Msg]:
-    """Iterate over messages in a queue.
-
-    Args:
-        q (Queue[Msg]): queue to read from
-        block (bool, optional): block until an item is available. Defaults to `True`.
-        timeout (float, optional): time in seconds to poll the queue.
-            Defaults to `0.05`.
-
-    Yields:
-        Iterator[Msg]: iterate over messages in the queue
-
-    .. deprecated:: 2.0.3
-       Use `iter(Q)` instead.
-    """
-    while True:
-        try:
-            msg = q.get(block=block, timeout=timeout)
-            if msg.kind == END_MSG.kind:
-                # We'd really like to put the `END_MSG` back in the queue
-                # to prevent reading past the end, but in practice
-                # this often creates an uncatchable `BrokenPipeError`.
-                # q.put(END_MSG)
-                break
-            yield msg
-        except Empty:  # pragma: no cover
-            # queue might not actually be empty
-            # see: https://bugs.python.org/issue20147
-            continue
-
-
-@deprecated("Use Q.items() instead.")
-def iter_q(q: MsgQ) -> Iterator[Msg]:
-    """End a queue and iterate over its current messages.
-
-    Args:
-        q (Queue[Msg]): queue to read from
-
-    Yields:
-        Iterator[Msg]: iterate over messages in the queue
-
-    .. deprecated:: 2.0.3
-       Use `Q.items()` instead.
-    """
-    endq(q)  # ensure queue has an end
-    return iter_msg(q, block=False, timeout=None)
-
-
-@deprecated("Use Q.sorted() instead.")
-def sortiter(
-    items: Iterable[Any],
-    start: int = 0,
-    key: Callable[[Any], int] = attrgetter("order"),
-) -> Iterator[Any]:
-    """Sort and yield the contents of a generator.
-
-    NOTE: `key` must return values that increment by one for each item. If there
-    are any gaps, items after the gap won't be yielded until the end.
-
-    Args:
-        items (Iterable): iterable to sort
-        start (int, optional): initial order number. Defaults to 0.
-        key (Callable, optional): custom key function.
-            Defaults to sorting by the `order` attribute.
-
-    Yields:
-        Iterator[Any]: item yielded in the correct order
-
-    .. deprecated:: 2.0.3
-       Use `Q.sorted()` instead.
-    """
-    prev = start - 1
-    waiting: List[Any] = []
-    for item in items:
-        if not waiting and key(item) == prev + 1:
-            prev += 1
-            yield item
-            continue
-
-        # items came out of order
-        waiting.append(item)
-        waiting.sort(key=key, reverse=True)  # sort in-place for performance
-        while waiting and key(waiting[-1]) == prev + 1:
-            prev += 1
-            yield waiting.pop()
-
-    # generator ended; yield any waiting items
-    while waiting:
-        yield waiting.pop()
-
-
-@deprecated("Use Q.end() instead.")
-def endq(q: MsgQ) -> MsgQ:
-    """Add a message to a queue to indicate its end.
-
-    Args:
-        q (Queue[Msg]): queue on which to send the message
-
-    Returns:
-        Queue[Msg]: queue the message was sent on
-
-    .. deprecated:: 2.0.3
-       Use `Q.end()` instead.
-    """
-    q.put(END_MSG)
-    return q
-
-
-@deprecated("Use Q.stop(workers) instead.")
-def endq_and_wait(q: MsgQ, workers: SomeWorkers) -> Workers:
-    """Notify a list of workers to end and wait for them to join.
-
-    Args:
-        q (Queue[Msg]): worker queue
-        workers (Worker, Sequence[Worker]): workers to wait for
-
-    Returns:
-        List[Thread|Process]: threads or subprocesses that ended
-
-    .. deprecated:: 2.0.3
-       Use `Q.stop()` instead.
-    """
-    # We're a little verbose to placate the type-checker.
-    _workers: Workers
-    if isinstance(workers, Thread):
-        _workers = [workers]
-    elif isinstance(workers, Process):
-        _workers = [workers]
-    else:
-        _workers = workers
-
-    for _ in range(len(_workers)):
-        endq(q)
-
-    for worker in _workers:
-        worker.join()
-    return _workers
-
-
 class Q:
-    """A simple message queue."""
+    """Simple message queue."""
 
     q: MsgQ
     """Wrapped queue."""
@@ -373,20 +191,23 @@ class Q:
     _items: Optional[List[Msg]] = None
     """Cache of queue messages when calling `.items(cache=True)`."""
 
-    def __init__(self, thread: bool = False, *args: Any, **kwargs: Any):
+    timeout: float = 0.05
+    """Time in seconds to poll the queue."""
+
+    def __init__(self, kind: ContextName = "process"):
         """Construct a queue wrapper.
 
         Args:
-            thread (bool, optional): If `True`, construct a lighter-weight
+            kind (ContextName, optional): If `"thread"`, construct a lighter-weight
                 `Queue` that is thread-safe. Otherwise, construct a full
-                `multiprocessing.Queue`. Defaults to `False`.
-
-            *args, *kwargs: Additional arguments passed to the `Queue` constructor.
+                `multiprocessing.Queue`. Defaults to `"process"`.
         """
-        if thread:
-            self.q = ThreadSafeQueue(*args, **kwargs)
-        else:
-            self.q = Queue(*args, **kwargs)
+        if kind == "process":
+            self.q = Queue()
+        elif kind == "thread":
+            self.q = ThreadSafeQueue()
+        else:  # pragma: no cover
+            raise ValueError(f"Unknown queue type: {kind}")
 
     def __getattr__(self, name: str) -> Any:
         """Delegate properties to the underlying queue.
@@ -405,7 +226,20 @@ class Q:
         Yields:
             Iterator[Msg]: iterate over messages in the queue
         """
-        return iter_msg(self.q)
+        while True:
+            try:
+                msg = self.q.get(block=True, timeout=self.timeout)
+                if msg.kind == END_MSG.kind:
+                    # We'd really like to put the `END_MSG` back in the queue
+                    # to prevent reading past the end, but in practice
+                    # this often creates an uncatchable `BrokenPipeError`.
+                    # q.put(END_MSG)
+                    break
+                yield msg
+            except Empty:  # pragma: no cover
+                # queue might not actually be empty
+                # see: https://bugs.python.org/issue20147
+                continue
 
     def items(self, cache: bool = False, sort: bool = False) -> Iterator[Msg]:
         """End a queue and read all the current messages.
@@ -431,15 +265,38 @@ class Q:
         self.end()
         return self.sorted() if sort else iter(self)
 
-    def sorted(self) -> Iterator[Msg]:
-        """Iterate over messages in a sorted order.
+    def sorted(self, start=0) -> Iterator[Msg]:
+        """Iterate over messages sorted by `Msg.order`.
 
-        See: `ezq.sortiter`
+        NOTE: `Msg.order` must be incremented by one for each message.
+        If there are any gaps, messages after the gap won't be yielded
+        until the end.
+
+        Args:
+            start (int, optional): initial message number. Defaults to `0`.
 
         Yields:
-            Iterator[Msg]: sorted message iterator
+            Iterator[Msg]: message yielded in the correct order
         """
-        return sortiter(self)
+        prev = start - 1
+        key = attrgetter("order")
+        waiting: List[Msg] = []
+        for item in self:
+            if not waiting and key(item) == prev + 1:
+                prev += 1
+                yield item
+                continue
+
+            # items came out of order
+            waiting.append(item)
+            waiting.sort(key=key, reverse=True)  # sort in-place for performance
+            while waiting and key(waiting[-1]) == prev + 1:
+                prev += 1
+                yield waiting.pop()
+
+        # generator ended; yield any waiting items
+        while waiting:
+            yield waiting.pop()
 
     def put(self, data: Any = None, *, kind: str = "", order: int = 0) -> "Q":
         """Put a message on the queue.
@@ -458,7 +315,7 @@ class Q:
             self.q.put(Msg(data=data, kind=kind, order=order))
         return self
 
-    def end(self) -> Self:
+    def end(self) -> "Q":
         """Add the `END_MSG` to indicate the end of work.
 
         Returns:
