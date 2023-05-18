@@ -22,7 +22,8 @@ def test_iter_q() -> None:
     for _ in range(num):
         q.put(1)
 
-    assert q.qsize() == num, "expect all messages queued"
+    if not ezq.IS_MACOS:
+        assert q.qsize() == num, "expect all messages queued"
 
     total = sum(msg.data for msg in q.items())
     assert num == total, "expect iterator to get all messages"
