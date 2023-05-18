@@ -19,6 +19,37 @@ These are changes that are on `main` that are not yet in `prod`.
 
 ---
 
+[#5]: https://github.com/metaist/ezq/issues/5
+[#7]: https://github.com/metaist/ezq/issues/7
+[#8]: https://github.com/metaist/ezq/issues/8
+[#9]: https://github.com/metaist/ezq/issues/9
+[3.0.0]: https://github.com/metaist/ezq/compare/2.0.3...3.0.0
+
+## [3.0.0] - 2023-05-18T09:58:43Z
+
+**Fixed**
+
+- GitHub Action: continuous integration
+- [#9]: `multiprocessing` on MacOS (by switching to `multiprocess`)
+
+**Changed**
+
+- [#8]: order of `Msg` parameters so that `data` comes first
+- [#9]: core library is now `multiprocess` instead of `multiprocessing`; `dill` replaces `pickle`.
+
+**Added**
+
+- GitHub Action: `mypy` check for examples and tests
+- supported python versions badge
+- [#5]: `Worker` wrapper for `Process` and `Thread`
+- `cSpell` to track ignored words
+
+**Removed**
+
+- [#7]: deprecated functions: `put_msg`, `iter_msg`, `iter_q`, `sortiter`, `endq`, `endq_and_wait`
+
+---
+
 [#1]: https://github.com/metaist/ezq/issues/1
 [#3]: https://github.com/metaist/ezq/issues/3
 [#4]: https://github.com/metaist/ezq/issues/4
