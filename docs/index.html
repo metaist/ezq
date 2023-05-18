@@ -24,7 +24,8 @@
 <section id="section-intro">
 <p>Simple wrapper for python <code>multiprocessing</code> and <code>threading</code>.</p>
 <p><a href="https://github.com/metaist/ezq/actions"><img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/metaist/ezq/.github/workflows/ci.yaml?branch=main&amp;style=for-the-badge"></a>
-<a href="https://pypi.org/project/ezq"><img alt="ezq on PyPI" src="https://img.shields.io/pypi/v/ezq.svg?color=blue&amp;style=for-the-badge"></a></p>
+<a href="https://pypi.org/project/ezq"><img alt="ezq on PyPI" src="https://img.shields.io/pypi/v/ezq.svg?color=blue&amp;style=for-the-badge"></a>
+<a href="https://pypi.org/project/ezq"><img alt="Supported Python versions" src="https://img.shields.io/pypi/pyversions/ezq?style=for-the-badge"></a></p>
 <p><a href="https://github.com/metaist/ezq/blob/main/CHANGELOG.md">Changelog</a> - <a href="https://github.com/metaist/ezq/issues">Issues</a> - <a href="https://metaist.github.io/ezq/">Documentation</a></p>
 <h2 id="why">Why?</h2>
 <p><code><a title="ezq" href="#ezq">ezq</a></code> makes it easy to connect subprocesses and threads (both considered "workers") using queues with a simpler API than <a href="https://docs.python.org/3/library/concurrent.futures.html"><code>concurrent.futures</code></a>, <a href="https://docs.python.org/3/library/multiprocessing.html"><code>multiprocessing</code></a>, or <a href="https://docs.python.org/3/library/threading.html"><code>threading</code></a>.</p>
@@ -83,7 +84,7 @@ if __name__ == &quot;__main__&quot;:
 <p>The main process <a href="#create-queues">creates queues</a> with <code><a title="ezq.Q" href="#ezq.Q">Q</a></code>.</p>
 </li>
 <li>
-<p>The main process <a href="#create-workers">creates workers</a> with <code><a title="ezq.run" href="#ezq.run">run()</a></code> or <code><a title="ezq.run_thread" href="#ezq.run_thread">run_thread()</a></code>.</p>
+<p>The main process <a href="#create-workers">creates workers</a> with <code><a title="ezq.run" href="#ezq.run">run()</a></code> (alias for <code><a title="ezq.Worker.process" href="#ezq.Worker.process">Worker.process()</a></code>) or <code><a title="ezq.run_thread" href="#ezq.run_thread">run_thread()</a></code> (alias for <code><a title="ezq.Worker.thread" href="#ezq.Worker.thread">Worker.thread()</a></code>).</p>
 </li>
 <li>
 <p>The main process <a href="#send-data">sends data</a> using <code><a title="ezq.Q.put" href="#ezq.Q.put">Q.put()</a></code>.</p>
@@ -114,7 +115,7 @@ if __name__ == &quot;__main__&quot;:
 <p>Some more differences:</p>
 <ul>
 <li>
-<p><strong>Shared memory</strong>: Each <code>Process</code> worker has <a href="#beware-pickle">data sent to it via <code>pickle</code></a> and it doesn't share data with other workers. By contrast, each <code>Thread</code> worker shares its memory with all other workers on the same CPU, so it can <a href="#beware-shared-state">accidentally change global state</a>.</p>
+<p><strong>Shared memory</strong>: Each <code>Process</code> worker has <a href="#beware-pickle">data sent to it via <code>pickle</code></a> (actually <a href="https://github.com/uqfoundation/dill"><code>dill</code></a>, a <code>pickle</code> replacement) and it doesn't share data with other workers. By contrast, each <code>Thread</code> worker shares its memory with all other workers on the same CPU, so it can <a href="#beware-shared-state">accidentally change global state</a>.</p>
 </li>
 <li>
 <p><strong>Queue overhead</strong>: <code><a title="ezq.Q" href="#ezq.Q">Q</a></code> <a href="#create-queues">has more overhead</a> for <code>Process</code> workers than <code>Thread</code> workers.</p>
@@ -139,11 +140,11 @@ if __name__ == &quot;__main__&quot;:
 <p><strong>3 queues</strong>: multiple stages of work are happening where workers are reading from one queue and writing to another queue for another worker to process.</p>
 </li>
 </ul>
-<p><strong>NOTE:</strong> If you're using <code>Thread</code> workers, you can save some overhead by passing <code>thread=True</code>. This lightweight queue also doesn't use <code>pickle</code>, so you can use it to pass hard-to-pickle things (e.g., <code>lambda</code>).</p>
+<p><strong>NOTE:</strong> If you're using <code>Thread</code> workers, you can save some overhead by passing <code>Q("thread")</code>. This lightweight queue also doesn't use <code>pickle</code>, so you can use it to pass hard-to-pickle things (e.g., database connection).</p>
 <pre><code class="language-python">q, out = ezq.Q(), ezq.Q() # most common
-q2 = ez.Q(thread=True) # only ok for Thread workers
+q2 = ez.Q(&quot;thread&quot;) # only ok for Thread workers
 </code></pre>
-<h2 id="a-worker-is-just-a-function">A worker is just a function</h2>
+<h2 id="a-worker-task-is-just-a-function">A worker task is just a function</h2>
 <p>In general, there's nothing special about a worker function, but note:</p>
 <ul>
 <li>
@@ -170,7 +171,7 @@ q2 = ez.Q(thread=True) # only ok for Thread workers
 </li>
 </ul>
 <h2 id="beware-pickle">Beware <code>pickle</code></h2>
-<p>If you are using <code>Process</code> workers, everything passed to the worker (arguments, messages) is first passed to <code>pickle</code> by <a href="https://docs.python.org/3/library/concurrent.futures.html"><code>multiprocessing</code></a>. Anything that cannot be pickled (e.g., <code>lambda</code> functions, database connections), cannot be passed to <code>Process</code> workers.</p>
+<p>If you are using <code>Process</code> workers, everything passed to the worker (arguments, messages) is first passed to <code>pickle</code> (actually, <a href="https://github.com/uqfoundation/dill"><code>dill</code></a>). Anything that cannot be pickled with dill (e.g., database connections), cannot be passed to <code>Process</code> workers. Note that <code>dill</code> <em>can</em> serialize many more types than <code>pickle</code> (e.g. <code>lambda</code> functions).</p>
 <h2 id="beware-shared-state">Beware shared state</h2>
 <p>If you are using <code>Thread</code> workers, workers can share certain variables, so you need to be careful of how variables are access to avoid accidentally corrupting data.</p>
 <h2 id="iterate-over-messages">Iterate over messages</h2>
@@ -220,7 +221,7 @@ def collatz(q: ezq.Q, out: ezq.Q) -&gt; None:
 
 def main() -&gt; None:
     &quot;&quot;&quot;Run several threads with a subprocess for printing.&quot;&quot;&quot;
-    q, out = ezq.Q(thread=True), ezq.Q()
+    q, out = ezq.Q(&quot;thread&quot;), ezq.Q()
     readers = [ezq.run_thread(collatz, q, out) for _ in range(ezq.NUM_THREADS)]
     writer = ezq.run(printer, out)
 
@@ -257,89 +258,89 @@ __all__ = (
     &#34;__pubdate__&#34;,
     &#34;__url__&#34;,
     &#34;__version__&#34;,
-    #
-    ## imported classes ##
-    # &#34;Process&#34;,  # deprecated
-    &#34;Queue&#34;,  # deprecated
-    # &#34;Thread&#34;,  # deprecated
-    # &#34;ThreadSafeQueue&#34;,  # deprecated
-    #
-    ## types ##
-    # &#34;MsgQ&#34;,
-    # &#34;Worker&#34;,
-    # &#34;Workers&#34;,
-    # &#34;SomeWorkers&#34;,
-    #
-    ## classes ##
+    &#34;Task&#34;,
+    &#34;Context&#34;,
+    &#34;ContextName&#34;,
     &#34;Msg&#34;,
-    &#34;Q&#34;,
-    #
-    ## constants ##
+    &#34;END_MSG&#34;,
+    &#34;MsgQ&#34;,
     &#34;NUM_CPUS&#34;,
     &#34;NUM_THREADS&#34;,
-    &#34;END_MSG&#34;,
-    #
-    ## functions ##
+    &#34;IS_MACOS&#34;,
+    &#34;Worker&#34;,
+    &#34;Q&#34;,
     &#34;run&#34;,
     &#34;run_thread&#34;,
     &#34;map&#34;,
-    &#34;put_msg&#34;,  # deprecated
-    &#34;iter_msg&#34;,  # deprecated
-    &#34;iter_q&#34;,  # deprecated
-    &#34;sortiter&#34;,  # deprecated
-    &#34;endq&#34;,  # deprecated
-    &#34;endq_and_wait&#34;,  # deprecated
 )
 
 # native
 from dataclasses import dataclass
-from multiprocessing import Process, Queue
 from operator import attrgetter
 from os import cpu_count
-from queue import Empty, Queue as ThreadSafeQueue
+from platform import system
+from queue import Empty
+from queue import Queue as ThreadSafeQueue
 from threading import Thread
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Sequence,
-    Iterator,
-    Optional,
-    Union,
-    TYPE_CHECKING,
-)
-from typing_extensions import deprecated, Self
+from typing import Any
+from typing import Callable
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Literal
+from typing import Optional
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import Union
 
+# lib
+from multiprocess import Process  # type: ignore
+from multiprocess import Queue
 
 # pkg
-from .__about__ import (
-    __url__,
-    __version__,
-    __pubdate__,
-    __author__,
-    __email__,
-    __copyright__,
-    __license__,
-)
+from .__about__ import __author__
+from .__about__ import __copyright__
+from .__about__ import __email__
+from .__about__ import __license__
+from .__about__ import __pubdate__
+from .__about__ import __url__
+from .__about__ import __version__
+
+Task = Callable[..., Any]
+&#34;&#34;&#34;Task function signature (any `Callable`).&#34;&#34;&#34;
+
+Context = Union[Process, Thread]
+&#34;&#34;&#34;Execution contexts (`Process`, `Thread`).&#34;&#34;&#34;
+
+ContextName = Literal[&#34;process&#34;, &#34;thread&#34;]
+&#34;&#34;&#34;Execution context names (`&#34;process&#34;`, `&#34;thread&#34;`).&#34;&#34;&#34;
 
 
 @dataclass
 class Msg:
     &#34;&#34;&#34;Message for a queue.&#34;&#34;&#34;
 
-    kind: str = &#34;&#34;
-    &#34;&#34;&#34;Optional marker of message type.&#34;&#34;&#34;
-
     data: Any = None
     &#34;&#34;&#34;Message data to be transmitted.&#34;&#34;&#34;
+
+    kind: str = &#34;&#34;
+    &#34;&#34;&#34;Optional marker of message type.&#34;&#34;&#34;
 
     order: int = 0
     &#34;&#34;&#34;Optional ordering of messages.&#34;&#34;&#34;
 
 
+# NOTE: The python `queue.Queue` is not properly a generic.
+# See: https://stackoverflow.com/a/48554601
+if TYPE_CHECKING:  # pragma: no cover
+    MsgQ = Union[Queue[Msg], ThreadSafeQueue]  # pylint: disable=unsubscriptable-object
+else:
+    MsgQ = Queue
+
 END_MSG: Msg = Msg(kind=&#34;END&#34;)
 &#34;&#34;&#34;Message that indicates no future messages will be sent.&#34;&#34;&#34;
+
+## Hardware-Specific Information ##
 
 NUM_CPUS: int = cpu_count() or 1
 &#34;&#34;&#34;Number of CPUs on this machine.&#34;&#34;&#34;
@@ -352,284 +353,108 @@ See: [CPython&#39;s default for this value][1].
 [1]: https://github.com/python/cpython/blob/a635d6386041a2971cf1d39837188ffb8139bcc7/Lib/concurrent/futures/thread.py#L142
 &#34;&#34;&#34;
 
-# NOTE: The python `queue.Queue` is not properly a generic.
-# See: https://stackoverflow.com/a/48554601
-if TYPE_CHECKING:  # pragma: no cover
-    MsgQ = Union[Queue[Msg], ThreadSafeQueue]  # pylint: disable=unsubscriptable-object
-else:
-    MsgQ = Queue
+IS_MACOS: bool = system().lower().startswith(&#34;darwin&#34;)
+&#34;&#34;&#34;`True` if we&#39;re running on MacOS.
 
-Worker = Union[Thread, Process]
-&#34;&#34;&#34;A thread or a process.&#34;&#34;&#34;
+Currently, we only use this value for testing, but there are certain features that
+do not work properly on MacOS.
 
-Workers = Union[Sequence[Thread], Sequence[Process]]
-&#34;&#34;&#34;Multiple threads or processes.&#34;&#34;&#34;
+See: [Example of MacOS-specific issues][1].
 
-SomeWorkers = Union[Worker, Workers]
-&#34;&#34;&#34;One or more threads or processes.&#34;&#34;&#34;
+[1]: https://github.com/python/cpython/blob/c5b670efd1e6dabc94b6308734d63f762480b80f/Lib/multiprocessing/queues.py#L125
+&#34;&#34;&#34;
 
 
-def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -&gt; Process:
-    &#34;&#34;&#34;Run a function as a subprocess.
+class Worker:
+    &#34;&#34;&#34;A function running in a `Process` or `Thread`.&#34;&#34;&#34;
 
-    Args:
-        func (Callable): function to run in each subprocess
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
+    _worker: Context
+    &#34;&#34;&#34;Execution context.&#34;&#34;&#34;
 
-    Returns:
-        Process: subprocess that was started
-    &#34;&#34;&#34;
-    worker = Process(daemon=True, target=func, args=args, kwargs=kwargs)
-    worker.start()
-    return worker
+    @staticmethod
+    def process(task: Task, *args: Any, **kwargs: Any) -&gt; &#34;Worker&#34;:
+        &#34;&#34;&#34;Create a `Process`-based `Worker`.
 
+        Args:
+            task (Task): function to run
+            *args (Any): additional arguments to `task`
+            **kwargs (Any): additional keyword arguments to `task`
 
-def run_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -&gt; Thread:
-    &#34;&#34;&#34;Run a function as a thread.
+        Returns:
+            Worker: wrapped worker.
+        &#34;&#34;&#34;
+        # NOTE: On MacOS, python 3.8 switched the default method
+        # from &#34;fork&#34; to &#34;spawn&#34; because fork is considered dangerous.
+        # Some posts say &#34;forkserver&#34; should be ok.
+        # See:  https://bugs.python.org/issue?@action=redirect&amp;bpo=33725
+        #
+        # if IS_MACOS:
+        #     ctx = get_context(&#34;forkserver&#34;)
+        # else:
+        #     ctx = get_context()
+        return Worker(Process(daemon=True, target=task, args=args, kwargs=kwargs))
 
-    Args:
-        func (Callable): function to run in each thread
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
+    @staticmethod
+    def thread(task: Task, *args: Any, **kwargs: Any) -&gt; &#34;Worker&#34;:
+        &#34;&#34;&#34;Create a `Thread`-based `Worker`.
 
-    Returns:
-        Thread: thread that was started
-    &#34;&#34;&#34;
-    worker = Thread(daemon=False, target=func, args=args, kwargs=kwargs)
-    worker.start()
-    return worker
+        Args:
+            task (Task): function to run
+            *args (Any): additional arguments to `task`
+            **kwargs (Any): additional keyword arguments to `task`
 
+        Returns:
+            Worker: wrapped worker.
+        &#34;&#34;&#34;
+        return Worker(Thread(daemon=False, target=task, args=args, kwargs=kwargs))
 
-map_ = map  # save the value of the builtin
+    def __init__(self, context: Context):
+        &#34;&#34;&#34;Construct a worker from a context.
 
+        Args:
+            context (Context): a `Process` or a `Thread`
+        &#34;&#34;&#34;
+        self._worker = context
+        self._worker.start()
 
-def map(
-    func: Callable[..., Any],
-    *args: Iterable[Any],
-    num: Optional[int] = None,
-    thread: bool = False,
-) -&gt; Iterator[Any]:
-    &#34;&#34;&#34;Call a function with arguments using multiple workers.
+    def __getattr__(self, name: str) -&gt; Any:
+        &#34;&#34;&#34;Delegate properties to the underlying task.
 
-    Args:
-        func (Callable): function to call
-        *args (list[Any]): arguments to `func`. If multiple lists are provided,
-            they will be passed to `zip` first.
-        num (int, optional): number of workers. If `None`, `NUM_CPUS` or
-            `NUM_THREADS` will be used as appropriate. Defaults to `None`.
-        thread (bool, optional): whether to use threads instead of processes.
-            Defaults to `False`.
+        Args:
+            name (str): attribute name
 
-    Yields:
-        Any: results from applying the function to the arguments
-    &#34;&#34;&#34;
-    q, out = Q(thread=thread), Q(thread=thread)
-
-    def _worker(_q: Q, _out: Q) -&gt; None:
-        &#34;&#34;&#34;Internal worker that calls `func`.&#34;&#34;&#34;
-        for msg in _q.sorted():
-            _out.put(data=func(*msg.data), order=msg.order)
-
-    workers: Workers
-    if thread:
-        workers = [run_thread(_worker, q, out) for _ in range(num or NUM_THREADS)]
-    else:
-        workers = [run(_worker, q, out) for _ in range(num or NUM_CPUS)]
-
-    for order, value in enumerate(zip(*args)):
-        q.put(value, order=order)
-    q.stop(workers)
-
-    for msg in out.end().sorted():
-        yield msg.data
-
-
-@deprecated(&#34;Use Q.put(data) instead.&#34;)
-def put_msg(q: MsgQ, kind: str = &#34;&#34;, data: Any = None, order: int = 0) -&gt; MsgQ:
-    &#34;&#34;&#34;Put a message into a queue.
-
-    Args:
-        q (Queue[Msg]): queue to add message to
-        kind (str, optional): kind of message. Defaults to &#34;&#34;.
-        data (Any, optional): message data. Defaults to None.
-        order (int, optional): message order. Defaults to 0.
-
-    Returns:
-        Queue[Msg]: queue the message was added to
-
-    .. deprecated:: 2.0.3
-       Use `Q.put` instead.
-    &#34;&#34;&#34;
-    q.put(Msg(kind=kind, data=data, order=order))
-    return q
-
-
-@deprecated(&#34;Use iter(Q) instead.&#34;)
-def iter_msg(
-    q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
-) -&gt; Iterator[Msg]:
-    &#34;&#34;&#34;Iterate over messages in a queue.
-
-    Args:
-        q (Queue[Msg]): queue to read from
-        block (bool, optional): block until an item is available. Defaults to `True`.
-        timeout (float, optional): time in seconds to poll the queue.
-            Defaults to `0.05`.
-
-    Yields:
-        Iterator[Msg]: iterate over messages in the queue
-
-    .. deprecated:: 2.0.3
-       Use `iter(Q)` instead.
-    &#34;&#34;&#34;
-    while True:
-        try:
-            msg = q.get(block=block, timeout=timeout)
-            if msg.kind == END_MSG.kind:
-                # We&#39;d really like to put the `END_MSG` back in the queue
-                # to prevent reading past the end, but in practice
-                # this often creates an uncatchable `BrokenPipeError`.
-                # q.put(END_MSG)
-                break
-            yield msg
-        except Empty:  # pragma: no cover
-            # queue might not actually be empty
-            # see: https://bugs.python.org/issue20147
-            continue
-
-
-@deprecated(&#34;Use Q.items() instead.&#34;)
-def iter_q(q: MsgQ) -&gt; Iterator[Msg]:
-    &#34;&#34;&#34;End a queue and iterate over its current messages.
-
-    Args:
-        q (Queue[Msg]): queue to read from
-
-    Yields:
-        Iterator[Msg]: iterate over messages in the queue
-
-    .. deprecated:: 2.0.3
-       Use `Q.items()` instead.
-    &#34;&#34;&#34;
-    endq(q)  # ensure queue has an end
-    return iter_msg(q, block=False, timeout=None)
-
-
-@deprecated(&#34;Use Q.sorted() instead.&#34;)
-def sortiter(
-    items: Iterable[Any],
-    start: int = 0,
-    key: Callable[[Any], int] = attrgetter(&#34;order&#34;),
-) -&gt; Iterator[Any]:
-    &#34;&#34;&#34;Sort and yield the contents of a generator.
-
-    NOTE: `key` must return values that increment by one for each item. If there
-    are any gaps, items after the gap won&#39;t be yielded until the end.
-
-    Args:
-        items (Iterable): iterable to sort
-        start (int, optional): initial order number. Defaults to 0.
-        key (Callable, optional): custom key function.
-            Defaults to sorting by the `order` attribute.
-
-    Yields:
-        Iterator[Any]: item yielded in the correct order
-
-    .. deprecated:: 2.0.3
-       Use `Q.sorted()` instead.
-    &#34;&#34;&#34;
-    prev = start - 1
-    waiting: List[Any] = []
-    for item in items:
-        if not waiting and key(item) == prev + 1:
-            prev += 1
-            yield item
-            continue
-
-        # items came out of order
-        waiting.append(item)
-        waiting.sort(key=key, reverse=True)  # sort in-place for performance
-        while waiting and key(waiting[-1]) == prev + 1:
-            prev += 1
-            yield waiting.pop()
-
-    # generator ended; yield any waiting items
-    while waiting:
-        yield waiting.pop()
-
-
-@deprecated(&#34;Use Q.end() instead.&#34;)
-def endq(q: MsgQ) -&gt; MsgQ:
-    &#34;&#34;&#34;Add a message to a queue to indicate its end.
-
-    Args:
-        q (Queue[Msg]): queue on which to send the message
-
-    Returns:
-        Queue[Msg]: queue the message was sent on
-
-    .. deprecated:: 2.0.3
-       Use `Q.end()` instead.
-    &#34;&#34;&#34;
-    q.put(END_MSG)
-    return q
-
-
-@deprecated(&#34;Use Q.stop(workers) instead.&#34;)
-def endq_and_wait(q: MsgQ, workers: SomeWorkers) -&gt; Workers:
-    &#34;&#34;&#34;Notify a list of workers to end and wait for them to join.
-
-    Args:
-        q (Queue[Msg]): worker queue
-        workers (Worker, Sequence[Worker]): workers to wait for
-
-    Returns:
-        List[Thread|Process]: threads or subprocesses that ended
-
-    .. deprecated:: 2.0.3
-       Use `Q.stop()` instead.
-    &#34;&#34;&#34;
-    # We&#39;re a little verbose to placate the type-checker.
-    _workers: Workers
-    if isinstance(workers, Thread):
-        _workers = [workers]
-    elif isinstance(workers, Process):
-        _workers = [workers]
-    else:
-        _workers = workers
-
-    for _ in range(len(_workers)):
-        endq(q)
-
-    for worker in _workers:
-        worker.join()
-    return _workers
+        Returns:
+            Any: attribute from the task
+        &#34;&#34;&#34;
+        return getattr(self._worker, name)
 
 
 class Q:
-    &#34;&#34;&#34;A simple message queue.&#34;&#34;&#34;
+    &#34;&#34;&#34;Simple message queue.&#34;&#34;&#34;
 
-    q: MsgQ
+    _q: MsgQ
     &#34;&#34;&#34;Wrapped queue.&#34;&#34;&#34;
 
-    _items: Optional[List[Msg]] = None
+    _cache: Optional[List[Msg]] = None
     &#34;&#34;&#34;Cache of queue messages when calling `.items(cache=True)`.&#34;&#34;&#34;
 
-    def __init__(self, thread: bool = False, *args: Any, **kwargs: Any):
+    _timeout: float = 0.05
+    &#34;&#34;&#34;Time in seconds to poll the queue.&#34;&#34;&#34;
+
+    def __init__(self, kind: ContextName = &#34;process&#34;):
         &#34;&#34;&#34;Construct a queue wrapper.
 
         Args:
-            thread (bool, optional): If `True`, construct a lighter-weight
+            kind (ContextName, optional): If `&#34;thread&#34;`, construct a lighter-weight
                 `Queue` that is thread-safe. Otherwise, construct a full
-                `multiprocessing.Queue`. Defaults to `False`.
-
-            *args, *kwargs: Additional arguments passed to the `Queue` constructor.
+                `multiprocess.Queue`. Defaults to `&#34;process&#34;`.
         &#34;&#34;&#34;
-        if thread:
-            self.q = ThreadSafeQueue(*args, **kwargs)
-        else:
-            self.q = Queue(*args, **kwargs)
+        if kind == &#34;process&#34;:
+            self._q = Queue()
+        elif kind == &#34;thread&#34;:
+            self._q = ThreadSafeQueue()
+        else:  # pragma: no cover
+            raise ValueError(f&#34;Unknown queue type: {kind}&#34;)
 
     def __getattr__(self, name: str) -&gt; Any:
         &#34;&#34;&#34;Delegate properties to the underlying queue.
@@ -640,7 +465,7 @@ class Q:
         Returns:
             Any: attribute from the queue
         &#34;&#34;&#34;
-        return getattr(self.q, name)
+        return getattr(self._q, name)
 
     def __iter__(self) -&gt; Iterator[Msg]:
         &#34;&#34;&#34;Iterate over messages in a queue until `END_MSG` is received.
@@ -648,7 +473,20 @@ class Q:
         Yields:
             Iterator[Msg]: iterate over messages in the queue
         &#34;&#34;&#34;
-        return iter_msg(self.q)
+        while True:
+            try:
+                msg = self._q.get(block=True, timeout=self._timeout)
+                if msg.kind == END_MSG.kind:
+                    # We&#39;d really like to put the `END_MSG` back in the queue
+                    # to prevent reading past the end, but in practice
+                    # this often creates an uncatchable `BrokenPipeError`.
+                    # q.put(END_MSG)
+                    break
+                yield msg
+            except Empty:  # pragma: no cover
+                # queue might not actually be empty
+                # see: https://bugs.python.org/issue20147
+                continue
 
     def items(self, cache: bool = False, sort: bool = False) -&gt; Iterator[Msg]:
         &#34;&#34;&#34;End a queue and read all the current messages.
@@ -665,52 +503,77 @@ class Q:
             Iterator[Msg]: iterate over messages in the queue
         &#34;&#34;&#34;
         if cache:
-            if self._items is None:  # need to build a cache
+            if self._cache is None:  # need to build a cache
                 self.end()
-                self._items = list(self.sorted() if sort else self)
-            return iter(self._items)
+                self._cache = list(self.sorted() if sort else self)
+            return iter(self._cache)
 
         # not cached
         self.end()
         return self.sorted() if sort else iter(self)
 
-    def sorted(self) -&gt; Iterator[Msg]:
-        &#34;&#34;&#34;Iterate over messages in a sorted order.
+    def sorted(self, start: int = 0) -&gt; Iterator[Msg]:
+        &#34;&#34;&#34;Iterate over messages sorted by `Msg.order`.
 
-        See: `ezq.sortiter`
+        NOTE: `Msg.order` must be incremented by one for each message.
+        If there are any gaps, messages after the gap won&#39;t be yielded
+        until the end.
+
+        Args:
+            start (int, optional): initial message number. Defaults to `0`.
 
         Yields:
-            Iterator[Msg]: sorted message iterator
+            Iterator[Msg]: message yielded in the correct order
         &#34;&#34;&#34;
-        return sortiter(self)
+        prev = start - 1
+        key = attrgetter(&#34;order&#34;)
+        waiting: List[Msg] = []
+        for item in self:
+            if not waiting and key(item) == prev + 1:
+                prev += 1
+                yield item
+                continue
 
-    def put(self, data: Any = None, kind: str = &#34;&#34;, order: int = 0) -&gt; Self:
+            # items came out of order
+            waiting.append(item)
+            waiting.sort(key=key, reverse=True)  # sort in-place for performance
+            while waiting and key(waiting[-1]) == prev + 1:
+                prev += 1
+                yield waiting.pop()
+
+        # generator ended; yield any waiting items
+        while waiting:
+            yield waiting.pop()
+
+    def put(self, data: Any = None, *, kind: str = &#34;&#34;, order: int = 0) -&gt; &#34;Q&#34;:
         &#34;&#34;&#34;Put a message on the queue.
 
         Args:
             data (Any, optional): message data. Defaults to `None`.
+
             kind (str, optional): kind of message. Defaults to `&#34;&#34;`.
+
             order (int, optional): message order. Defaults to `0`.
 
         Returns:
             Self: self for chaining
         &#34;&#34;&#34;
         if isinstance(data, Msg):
-            self.q.put_nowait(data)
+            self._q.put(data)
         else:
-            self.q.put_nowait(Msg(data=data, kind=kind, order=order))
+            self._q.put(Msg(data=data, kind=kind, order=order))
         return self
 
-    def end(self) -&gt; Self:
+    def end(self) -&gt; &#34;Q&#34;:
         &#34;&#34;&#34;Add the `END_MSG` to indicate the end of work.
 
         Returns:
             Self: self for chaining
         &#34;&#34;&#34;
-        self.q.put(END_MSG)
+        self._q.put(END_MSG)
         return self
 
-    def stop(self, workers: SomeWorkers) -&gt; Self:
+    def stop(self, workers: Union[Worker, Sequence[Worker]]) -&gt; &#34;Q&#34;:
         &#34;&#34;&#34;Use this queue to notify workers to end and wait for them to join.
 
         Args:
@@ -719,8 +582,98 @@ class Q:
         Returns:
             Self: self for chaining
         &#34;&#34;&#34;
-        endq_and_wait(self.q, workers)
-        return self</code></pre>
+        _workers = [workers] if isinstance(workers, Worker) else workers
+
+        for _ in range(len(_workers)):
+            self.end()
+
+        for task in _workers:
+            task.join()
+
+        return self
+
+
+def run(task: Task, *args: Any, **kwargs: Any) -&gt; Worker:
+    &#34;&#34;&#34;Run a function as a subprocess.
+
+    Args:
+        task (Task): function to run in each subprocess
+
+        *args (Any): additional positional arguments to `task`.
+
+        **kwargs (Any): additional keyword arguments to `task`.
+
+    Returns:
+        Worker: worker started in a subprocess
+
+    .. changed:: 2.0.4
+       This function now returns a `Worker` instead of a `Process`.
+    &#34;&#34;&#34;
+    return Worker.process(task, *args, **kwargs)
+
+
+def run_thread(task: Task, *args: Any, **kwargs: Any) -&gt; Worker:
+    &#34;&#34;&#34;Run a function as a thread.
+
+    Args:
+        task (Task): function to run in each thread
+
+        *args (Any): additional positional arguments to `task`.
+
+        **kwargs (Any): additional keyword arguments to `task`.
+
+    Returns:
+        Worker: worker started in a thread
+
+    .. changed:: 2.0.4
+       This function now returns a `Worker` instead of a `Thread`.
+    &#34;&#34;&#34;
+    return Worker.thread(task, *args, **kwargs)
+
+
+def map(
+    task: Task,
+    *args: Iterable[Any],
+    num: Optional[int] = None,
+    kind: ContextName = &#34;process&#34;,
+) -&gt; Iterator[Any]:
+    &#34;&#34;&#34;Call a function with arguments using multiple workers.
+
+    Args:
+        func (Callable): function to call
+
+        *args (list[Any]): arguments to `func`. If multiple lists are provided,
+            they will be passed to `zip` first.
+
+        num (int, optional): number of workers. If `None`, `NUM_CPUS` or
+            `NUM_THREADS` will be used as appropriate. Defaults to `None`.
+
+        kind (ContextName, optional): execution context to use.
+            Defaults to `&#34;process&#34;`.
+
+    Yields:
+        Any: results from applying the function to the arguments
+    &#34;&#34;&#34;
+    q, out = Q(kind=kind), Q(kind=kind)
+
+    def worker(_q: Q, _out: Q) -&gt; None:
+        &#34;&#34;&#34;Internal call to `func`.&#34;&#34;&#34;
+        for msg in _q.sorted():
+            _out.put(data=task(*msg.data), order=msg.order)
+
+    if kind == &#34;process&#34;:
+        workers = [Worker.process(worker, q, out) for _ in range(num or NUM_CPUS)]
+    elif kind == &#34;thread&#34;:
+        workers = [Worker.thread(worker, q, out) for _ in range(num or NUM_THREADS)]
+    else:  # pragma: no cover
+        raise ValueError(f&#34;Unknown worker context: {kind}&#34;)
+
+    for order, value in enumerate(zip(*args)):
+        q.put(value, order=order)
+    q.stop(workers)
+
+    for msg in out.end().sorted():
+        yield msg.data</code></pre>
 </details>
 </section>
 <section>
@@ -728,9 +681,24 @@ class Q:
 <section>
 <h2 class="section-title" id="header-variables">Global variables</h2>
 <dl>
+<dt id="ezq.Context"><code class="name">var <span class="ident">Context</span></code></dt>
+<dd>
+<div class="desc"><p>Execution contexts (<code>Process</code>, <code>Thread</code>).</p></div>
+</dd>
+<dt id="ezq.ContextName"><code class="name">var <span class="ident">ContextName</span></code></dt>
+<dd>
+<div class="desc"><p>Execution context names (<code>"process"</code>, <code>"thread"</code>).</p></div>
+</dd>
 <dt id="ezq.END_MSG"><code class="name">var <span class="ident">END_MSG</span> : <a title="ezq.Msg" href="#ezq.Msg">Msg</a></code></dt>
 <dd>
 <div class="desc"><p>Message that indicates no future messages will be sent.</p></div>
+</dd>
+<dt id="ezq.IS_MACOS"><code class="name">var <span class="ident">IS_MACOS</span> : bool</code></dt>
+<dd>
+<div class="desc"><p><code>True</code> if we're running on MacOS.</p>
+<p>Currently, we only use this value for testing, but there are certain features that
+do not work properly on MacOS.</p>
+<p>See: <a href="https://github.com/python/cpython/blob/c5b670efd1e6dabc94b6308734d63f762480b80f/Lib/multiprocessing/queues.py#L125">Example of MacOS-specific issues</a>.</p></div>
 </dd>
 <dt id="ezq.NUM_CPUS"><code class="name">var <span class="ident">NUM_CPUS</span> : int</code></dt>
 <dd>
@@ -741,13 +709,17 @@ class Q:
 <div class="desc"><p>Default number of threads (up to 32).</p>
 <p>See: <a href="https://github.com/python/cpython/blob/a635d6386041a2971cf1d39837188ffb8139bcc7/Lib/concurrent/futures/thread.py#L142">CPython's default for this value</a>.</p></div>
 </dd>
+<dt id="ezq.Task"><code class="name">var <span class="ident">Task</span></code></dt>
+<dd>
+<div class="desc"><p>Task function signature (any <code>Callable</code>).</p></div>
+</dd>
 </dl>
 </section>
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="ezq.Queue"><code class="name flex">
-<span>def <span class="ident">Queue</span></span>(<span>maxsize=0)</span>
+<dt id="ezq.MsgQ"><code class="name flex">
+<span>def <span class="ident">MsgQ</span></span>(<span>maxsize=0)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Returns a queue object</p></div>
@@ -761,203 +733,8 @@ class Q:
     return Queue(maxsize, ctx=self.get_context())</code></pre>
 </details>
 </dd>
-<dt id="ezq.endq"><code class="name flex">
-<span>def <span class="ident">endq</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>) ‑> <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>></span>
-</code></dt>
-<dd>
-<div class="desc"><p>Add a message to a queue to indicate its end.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>queue on which to send the message</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>queue the message was sent on</dd>
-</dl>
-<div class="admonition deprecated">
-<p class="admonition-title">Deprecated since version:&ensp;2.0.3</p>
-<p>Use <code><a title="ezq.Q.end" href="#ezq.Q.end">Q.end()</a></code> instead.</p>
-</div></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@deprecated(&#34;Use Q.end() instead.&#34;)
-def endq(q: MsgQ) -&gt; MsgQ:
-    &#34;&#34;&#34;Add a message to a queue to indicate its end.
-
-    Args:
-        q (Queue[Msg]): queue on which to send the message
-
-    Returns:
-        Queue[Msg]: queue the message was sent on
-
-    .. deprecated:: 2.0.3
-       Use `Q.end()` instead.
-    &#34;&#34;&#34;
-    q.put(END_MSG)
-    return q</code></pre>
-</details>
-</dd>
-<dt id="ezq.endq_and_wait"><code class="name flex">
-<span>def <span class="ident">endq_and_wait</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>, workers: Union[threading.Thread, multiprocessing.context.Process, Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]) ‑> Union[Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Notify a list of workers to end and wait for them to join.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>worker queue</dd>
-<dt><strong><code>workers</code></strong> :&ensp;<code>Worker, Sequence[Worker]</code></dt>
-<dd>workers to wait for</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>List[Thread|Process]: threads or subprocesses that ended</p>
-<div class="admonition deprecated">
-<p class="admonition-title">Deprecated since version:&ensp;2.0.3</p>
-<p>Use <code><a title="ezq.Q.stop" href="#ezq.Q.stop">Q.stop()</a></code> instead.</p>
-</div></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@deprecated(&#34;Use Q.stop(workers) instead.&#34;)
-def endq_and_wait(q: MsgQ, workers: SomeWorkers) -&gt; Workers:
-    &#34;&#34;&#34;Notify a list of workers to end and wait for them to join.
-
-    Args:
-        q (Queue[Msg]): worker queue
-        workers (Worker, Sequence[Worker]): workers to wait for
-
-    Returns:
-        List[Thread|Process]: threads or subprocesses that ended
-
-    .. deprecated:: 2.0.3
-       Use `Q.stop()` instead.
-    &#34;&#34;&#34;
-    # We&#39;re a little verbose to placate the type-checker.
-    _workers: Workers
-    if isinstance(workers, Thread):
-        _workers = [workers]
-    elif isinstance(workers, Process):
-        _workers = [workers]
-    else:
-        _workers = workers
-
-    for _ in range(len(_workers)):
-        endq(q)
-
-    for worker in _workers:
-        worker.join()
-    return _workers</code></pre>
-</details>
-</dd>
-<dt id="ezq.iter_msg"><code class="name flex">
-<span>def <span class="ident">iter_msg</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>, block: bool = True, timeout: Optional[float] = 0.05) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Iterate over messages in a queue.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>queue to read from</dd>
-<dt><strong><code>block</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>block until an item is available. Defaults to <code>True</code>.</dd>
-<dt><strong><code>timeout</code></strong> :&ensp;<code>float</code>, optional</dt>
-<dd>time in seconds to poll the queue.
-Defaults to <code>0.05</code>.</dd>
-</dl>
-<h2 id="yields">Yields</h2>
-<dl>
-<dt><code>Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>iterate over messages in the queue</dd>
-</dl>
-<div class="admonition deprecated">
-<p class="admonition-title">Deprecated since version:&ensp;2.0.3</p>
-<p>Use <code>iter(<a title="ezq.Q" href="#ezq.Q">Q</a>)</code> instead.</p>
-</div></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@deprecated(&#34;Use iter(Q) instead.&#34;)
-def iter_msg(
-    q: MsgQ, block: bool = True, timeout: Optional[float] = 0.05
-) -&gt; Iterator[Msg]:
-    &#34;&#34;&#34;Iterate over messages in a queue.
-
-    Args:
-        q (Queue[Msg]): queue to read from
-        block (bool, optional): block until an item is available. Defaults to `True`.
-        timeout (float, optional): time in seconds to poll the queue.
-            Defaults to `0.05`.
-
-    Yields:
-        Iterator[Msg]: iterate over messages in the queue
-
-    .. deprecated:: 2.0.3
-       Use `iter(Q)` instead.
-    &#34;&#34;&#34;
-    while True:
-        try:
-            msg = q.get(block=block, timeout=timeout)
-            if msg.kind == END_MSG.kind:
-                # We&#39;d really like to put the `END_MSG` back in the queue
-                # to prevent reading past the end, but in practice
-                # this often creates an uncatchable `BrokenPipeError`.
-                # q.put(END_MSG)
-                break
-            yield msg
-        except Empty:  # pragma: no cover
-            # queue might not actually be empty
-            # see: https://bugs.python.org/issue20147
-            continue</code></pre>
-</details>
-</dd>
-<dt id="ezq.iter_q"><code class="name flex">
-<span>def <span class="ident">iter_q</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>End a queue and iterate over its current messages.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>queue to read from</dd>
-</dl>
-<h2 id="yields">Yields</h2>
-<dl>
-<dt><code>Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>iterate over messages in the queue</dd>
-</dl>
-<div class="admonition deprecated">
-<p class="admonition-title">Deprecated since version:&ensp;2.0.3</p>
-<p>Use <code><a title="ezq.Q.items" href="#ezq.Q.items">Q.items()</a></code> instead.</p>
-</div></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@deprecated(&#34;Use Q.items() instead.&#34;)
-def iter_q(q: MsgQ) -&gt; Iterator[Msg]:
-    &#34;&#34;&#34;End a queue and iterate over its current messages.
-
-    Args:
-        q (Queue[Msg]): queue to read from
-
-    Yields:
-        Iterator[Msg]: iterate over messages in the queue
-
-    .. deprecated:: 2.0.3
-       Use `Q.items()` instead.
-    &#34;&#34;&#34;
-    endq(q)  # ensure queue has an end
-    return iter_msg(q, block=False, timeout=None)</code></pre>
-</details>
-</dd>
 <dt id="ezq.map"><code class="name flex">
-<span>def <span class="ident">map</span></span>(<span>func: Callable[..., Any], *args: Iterable[Any], num: Optional[int] = None, thread: bool = False) ‑> Iterator[Any]</span>
+<span>def <span class="ident">map</span></span>(<span>task: Callable[..., Any], *args: Iterable[Any], num: Optional[int] = None, kind: Literal['process', 'thread'] = 'process') ‑> Iterator[Any]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Call a function with arguments using multiple workers.</p>
@@ -971,9 +748,9 @@ they will be passed to <code>zip</code> first.</dd>
 <dt><strong><code>num</code></strong> :&ensp;<code>int</code>, optional</dt>
 <dd>number of workers. If <code>None</code>, <code><a title="ezq.NUM_CPUS" href="#ezq.NUM_CPUS">NUM_CPUS</a></code> or
 <code><a title="ezq.NUM_THREADS" href="#ezq.NUM_THREADS">NUM_THREADS</a></code> will be used as appropriate. Defaults to <code>None</code>.</dd>
-<dt><strong><code>thread</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>whether to use threads instead of processes.
-Defaults to <code>False</code>.</dd>
+<dt><strong><code>kind</code></strong> :&ensp;<code><a title="ezq.ContextName" href="#ezq.ContextName">ContextName</a></code>, optional</dt>
+<dd>execution context to use.
+Defaults to <code>"process"</code>.</dd>
 </dl>
 <h2 id="yields">Yields</h2>
 <dl>
@@ -985,37 +762,41 @@ Defaults to <code>False</code>.</dd>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def map(
-    func: Callable[..., Any],
+    task: Task,
     *args: Iterable[Any],
     num: Optional[int] = None,
-    thread: bool = False,
+    kind: ContextName = &#34;process&#34;,
 ) -&gt; Iterator[Any]:
     &#34;&#34;&#34;Call a function with arguments using multiple workers.
 
     Args:
         func (Callable): function to call
+
         *args (list[Any]): arguments to `func`. If multiple lists are provided,
             they will be passed to `zip` first.
+
         num (int, optional): number of workers. If `None`, `NUM_CPUS` or
             `NUM_THREADS` will be used as appropriate. Defaults to `None`.
-        thread (bool, optional): whether to use threads instead of processes.
-            Defaults to `False`.
+
+        kind (ContextName, optional): execution context to use.
+            Defaults to `&#34;process&#34;`.
 
     Yields:
         Any: results from applying the function to the arguments
     &#34;&#34;&#34;
-    q, out = Q(thread=thread), Q(thread=thread)
+    q, out = Q(kind=kind), Q(kind=kind)
 
-    def _worker(_q: Q, _out: Q) -&gt; None:
-        &#34;&#34;&#34;Internal worker that calls `func`.&#34;&#34;&#34;
+    def worker(_q: Q, _out: Q) -&gt; None:
+        &#34;&#34;&#34;Internal call to `func`.&#34;&#34;&#34;
         for msg in _q.sorted():
-            _out.put(data=func(*msg.data), order=msg.order)
+            _out.put(data=task(*msg.data), order=msg.order)
 
-    workers: Workers
-    if thread:
-        workers = [run_thread(_worker, q, out) for _ in range(num or NUM_THREADS)]
-    else:
-        workers = [run(_worker, q, out) for _ in range(num or NUM_CPUS)]
+    if kind == &#34;process&#34;:
+        workers = [Worker.process(worker, q, out) for _ in range(num or NUM_CPUS)]
+    elif kind == &#34;thread&#34;:
+        workers = [Worker.thread(worker, q, out) for _ in range(num or NUM_THREADS)]
+    else:  # pragma: no cover
+        raise ValueError(f&#34;Unknown worker context: {kind}&#34;)
 
     for order, value in enumerate(zip(*args)):
         q.put(value, order=order)
@@ -1025,204 +806,96 @@ Defaults to <code>False</code>.</dd>
         yield msg.data</code></pre>
 </details>
 </dd>
-<dt id="ezq.put_msg"><code class="name flex">
-<span>def <span class="ident">put_msg</span></span>(<span>q: <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>>, kind: str = '', data: Any = None, order: int = 0) ‑> <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>></span>
-</code></dt>
-<dd>
-<div class="desc"><p>Put a message into a queue.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>q</code></strong> :&ensp;<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>queue to add message to</dd>
-<dt><strong><code>kind</code></strong> :&ensp;<code>str</code>, optional</dt>
-<dd>kind of message. Defaults to "".</dd>
-<dt><strong><code>data</code></strong> :&ensp;<code>Any</code>, optional</dt>
-<dd>message data. Defaults to None.</dd>
-<dt><strong><code>order</code></strong> :&ensp;<code>int</code>, optional</dt>
-<dd>message order. Defaults to 0.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a>[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>queue the message was added to</dd>
-</dl>
-<div class="admonition deprecated">
-<p class="admonition-title">Deprecated since version:&ensp;2.0.3</p>
-<p>Use <code><a title="ezq.Q.put" href="#ezq.Q.put">Q.put()</a></code> instead.</p>
-</div></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@deprecated(&#34;Use Q.put(data) instead.&#34;)
-def put_msg(q: MsgQ, kind: str = &#34;&#34;, data: Any = None, order: int = 0) -&gt; MsgQ:
-    &#34;&#34;&#34;Put a message into a queue.
-
-    Args:
-        q (Queue[Msg]): queue to add message to
-        kind (str, optional): kind of message. Defaults to &#34;&#34;.
-        data (Any, optional): message data. Defaults to None.
-        order (int, optional): message order. Defaults to 0.
-
-    Returns:
-        Queue[Msg]: queue the message was added to
-
-    .. deprecated:: 2.0.3
-       Use `Q.put` instead.
-    &#34;&#34;&#34;
-    q.put(Msg(kind=kind, data=data, order=order))
-    return q</code></pre>
-</details>
-</dd>
 <dt id="ezq.run"><code class="name flex">
-<span>def <span class="ident">run</span></span>(<span>func: Callable[..., Any], *args: Any, **kwargs: Any) ‑> multiprocessing.context.Process</span>
+<span>def <span class="ident">run</span></span>(<span>task: Callable[..., Any], *args: Any, **kwargs: Any) ‑> <a title="ezq.Worker" href="#ezq.Worker">Worker</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Run a function as a subprocess.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>func</code></strong> :&ensp;<code>Callable</code></dt>
+<dt><strong><code>task</code></strong> :&ensp;<code><a title="ezq.Task" href="#ezq.Task">Task</a></code></dt>
 <dd>function to run in each subprocess</dd>
 <dt><strong><code>*args</code></strong> :&ensp;<code>Any</code></dt>
-<dd>additional positional arguments to <code>func</code>.</dd>
+<dd>additional positional arguments to <code>task</code>.</dd>
 <dt><strong><code>**kwargs</code></strong> :&ensp;<code>Any</code></dt>
-<dd>additional keyword arguments to <code>func</code>.</dd>
+<dd>additional keyword arguments to <code>task</code>.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Process</code></dt>
-<dd>subprocess that was started</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def run(func: Callable[..., Any], *args: Any, **kwargs: Any) -&gt; Process:
-    &#34;&#34;&#34;Run a function as a subprocess.
-
-    Args:
-        func (Callable): function to run in each subprocess
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
-
-    Returns:
-        Process: subprocess that was started
-    &#34;&#34;&#34;
-    worker = Process(daemon=True, target=func, args=args, kwargs=kwargs)
-    worker.start()
-    return worker</code></pre>
-</details>
-</dd>
-<dt id="ezq.run_thread"><code class="name flex">
-<span>def <span class="ident">run_thread</span></span>(<span>func: Callable[..., Any], *args: Any, **kwargs: Any) ‑> threading.Thread</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Run a function as a thread.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>func</code></strong> :&ensp;<code>Callable</code></dt>
-<dd>function to run in each thread</dd>
-<dt><strong><code>*args</code></strong> :&ensp;<code>Any</code></dt>
-<dd>additional positional arguments to <code>func</code>.</dd>
-<dt><strong><code>**kwargs</code></strong> :&ensp;<code>Any</code></dt>
-<dd>additional keyword arguments to <code>func</code>.</dd>
+<dt><code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code></dt>
+<dd>worker started in a subprocess</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>Thread</code></dt>
-<dd>thread that was started</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def run_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -&gt; Thread:
-    &#34;&#34;&#34;Run a function as a thread.
-
-    Args:
-        func (Callable): function to run in each thread
-        *args (Any): additional positional arguments to `func`.
-        **kwargs (Any): additional keyword arguments to `func`.
-
-    Returns:
-        Thread: thread that was started
-    &#34;&#34;&#34;
-    worker = Thread(daemon=False, target=func, args=args, kwargs=kwargs)
-    worker.start()
-    return worker</code></pre>
-</details>
-</dd>
-<dt id="ezq.sortiter"><code class="name flex">
-<span>def <span class="ident">sortiter</span></span>(<span>items: Iterable[Any], start: int = 0, key: Callable[[Any], int] = operator.attrgetter('order')) ‑> Iterator[Any]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Sort and yield the contents of a generator.</p>
-<p>NOTE: <code>key</code> must return values that increment by one for each item. If there
-are any gaps, items after the gap won't be yielded until the end.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>items</code></strong> :&ensp;<code>Iterable</code></dt>
-<dd>iterable to sort</dd>
-<dt><strong><code>start</code></strong> :&ensp;<code>int</code>, optional</dt>
-<dd>initial order number. Defaults to 0.</dd>
-<dt><strong><code>key</code></strong> :&ensp;<code>Callable</code>, optional</dt>
-<dd>custom key function.
-Defaults to sorting by the <code>order</code> attribute.</dd>
-</dl>
-<h2 id="yields">Yields</h2>
-<dl>
-<dt><code>Iterator[Any]</code></dt>
-<dd>item yielded in the correct order</dd>
-</dl>
-<div class="admonition deprecated">
-<p class="admonition-title">Deprecated since version:&ensp;2.0.3</p>
-<p>Use <code><a title="ezq.Q.sorted" href="#ezq.Q.sorted">Q.sorted()</a></code> instead.</p>
+<div class="admonition changed">
+<p class="admonition-title">Changed:&ensp;2.0.4</p>
+<p>This function now returns a <code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code> instead of a <code>Process</code>.</p>
 </div></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@deprecated(&#34;Use Q.sorted() instead.&#34;)
-def sortiter(
-    items: Iterable[Any],
-    start: int = 0,
-    key: Callable[[Any], int] = attrgetter(&#34;order&#34;),
-) -&gt; Iterator[Any]:
-    &#34;&#34;&#34;Sort and yield the contents of a generator.
-
-    NOTE: `key` must return values that increment by one for each item. If there
-    are any gaps, items after the gap won&#39;t be yielded until the end.
+<pre><code class="python">def run(task: Task, *args: Any, **kwargs: Any) -&gt; Worker:
+    &#34;&#34;&#34;Run a function as a subprocess.
 
     Args:
-        items (Iterable): iterable to sort
-        start (int, optional): initial order number. Defaults to 0.
-        key (Callable, optional): custom key function.
-            Defaults to sorting by the `order` attribute.
+        task (Task): function to run in each subprocess
 
-    Yields:
-        Iterator[Any]: item yielded in the correct order
+        *args (Any): additional positional arguments to `task`.
 
-    .. deprecated:: 2.0.3
-       Use `Q.sorted()` instead.
+        **kwargs (Any): additional keyword arguments to `task`.
+
+    Returns:
+        Worker: worker started in a subprocess
+
+    .. changed:: 2.0.4
+       This function now returns a `Worker` instead of a `Process`.
     &#34;&#34;&#34;
-    prev = start - 1
-    waiting: List[Any] = []
-    for item in items:
-        if not waiting and key(item) == prev + 1:
-            prev += 1
-            yield item
-            continue
+    return Worker.process(task, *args, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="ezq.run_thread"><code class="name flex">
+<span>def <span class="ident">run_thread</span></span>(<span>task: Callable[..., Any], *args: Any, **kwargs: Any) ‑> <a title="ezq.Worker" href="#ezq.Worker">Worker</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run a function as a thread.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>task</code></strong> :&ensp;<code><a title="ezq.Task" href="#ezq.Task">Task</a></code></dt>
+<dd>function to run in each thread</dd>
+<dt><strong><code>*args</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional positional arguments to <code>task</code>.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional keyword arguments to <code>task</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code></dt>
+<dd>worker started in a thread</dd>
+</dl>
+<div class="admonition changed">
+<p class="admonition-title">Changed:&ensp;2.0.4</p>
+<p>This function now returns a <code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code> instead of a <code>Thread</code>.</p>
+</div></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run_thread(task: Task, *args: Any, **kwargs: Any) -&gt; Worker:
+    &#34;&#34;&#34;Run a function as a thread.
 
-        # items came out of order
-        waiting.append(item)
-        waiting.sort(key=key, reverse=True)  # sort in-place for performance
-        while waiting and key(waiting[-1]) == prev + 1:
-            prev += 1
-            yield waiting.pop()
+    Args:
+        task (Task): function to run in each thread
 
-    # generator ended; yield any waiting items
-    while waiting:
-        yield waiting.pop()</code></pre>
+        *args (Any): additional positional arguments to `task`.
+
+        **kwargs (Any): additional keyword arguments to `task`.
+
+    Returns:
+        Worker: worker started in a thread
+
+    .. changed:: 2.0.4
+       This function now returns a `Worker` instead of a `Thread`.
+    &#34;&#34;&#34;
+    return Worker.thread(task, *args, **kwargs)</code></pre>
 </details>
 </dd>
 </dl>
@@ -1232,7 +905,7 @@ def sortiter(
 <dl>
 <dt id="ezq.Msg"><code class="flex name class">
 <span>class <span class="ident">Msg</span></span>
-<span>(</span><span>kind: str = '', data: Any = None, order: int = 0)</span>
+<span>(</span><span>data: Any = None, kind: str = '', order: int = 0)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Message for a queue.</p></div>
@@ -1240,14 +913,15 @@ def sortiter(
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class Msg:
+<pre><code class="python">@dataclass
+class Msg:
     &#34;&#34;&#34;Message for a queue.&#34;&#34;&#34;
-
-    kind: str = &#34;&#34;
-    &#34;&#34;&#34;Optional marker of message type.&#34;&#34;&#34;
 
     data: Any = None
     &#34;&#34;&#34;Message data to be transmitted.&#34;&#34;&#34;
+
+    kind: str = &#34;&#34;
+    &#34;&#34;&#34;Optional marker of message type.&#34;&#34;&#34;
 
     order: int = 0
     &#34;&#34;&#34;Optional ordering of messages.&#34;&#34;&#34;</code></pre>
@@ -1270,46 +944,48 @@ def sortiter(
 </dd>
 <dt id="ezq.Q"><code class="flex name class">
 <span>class <span class="ident">Q</span></span>
-<span>(</span><span>thread: bool = False, *args: Any, **kwargs: Any)</span>
+<span>(</span><span>kind: Literal['process', 'thread'] = 'process')</span>
 </code></dt>
 <dd>
-<div class="desc"><p>A simple message queue.</p>
+<div class="desc"><p>Simple message queue.</p>
 <p>Construct a queue wrapper.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>thread</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>If <code>True</code>, construct a lighter-weight
-<code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a></code> that is thread-safe. Otherwise, construct a full
-<code>multiprocessing.Queue</code>. Defaults to <code>False</code>.</dd>
-</dl>
-<p><em>args, </em>kwargs: Additional arguments passed to the <code><a title="ezq.Queue" href="#ezq.Queue">BaseContext.Queue()</a></code> constructor.</p></div>
+<dt><strong><code>kind</code></strong> :&ensp;<code><a title="ezq.ContextName" href="#ezq.ContextName">ContextName</a></code>, optional</dt>
+<dd>If <code>"thread"</code>, construct a lighter-weight
+<code>Queue</code> that is thread-safe. Otherwise, construct a full
+<code>multiprocess.Queue</code>. Defaults to <code>"process"</code>.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Q:
-    &#34;&#34;&#34;A simple message queue.&#34;&#34;&#34;
+    &#34;&#34;&#34;Simple message queue.&#34;&#34;&#34;
 
-    q: MsgQ
+    _q: MsgQ
     &#34;&#34;&#34;Wrapped queue.&#34;&#34;&#34;
 
-    _items: Optional[List[Msg]] = None
+    _cache: Optional[List[Msg]] = None
     &#34;&#34;&#34;Cache of queue messages when calling `.items(cache=True)`.&#34;&#34;&#34;
 
-    def __init__(self, thread: bool = False, *args: Any, **kwargs: Any):
+    _timeout: float = 0.05
+    &#34;&#34;&#34;Time in seconds to poll the queue.&#34;&#34;&#34;
+
+    def __init__(self, kind: ContextName = &#34;process&#34;):
         &#34;&#34;&#34;Construct a queue wrapper.
 
         Args:
-            thread (bool, optional): If `True`, construct a lighter-weight
+            kind (ContextName, optional): If `&#34;thread&#34;`, construct a lighter-weight
                 `Queue` that is thread-safe. Otherwise, construct a full
-                `multiprocessing.Queue`. Defaults to `False`.
-
-            *args, *kwargs: Additional arguments passed to the `Queue` constructor.
+                `multiprocess.Queue`. Defaults to `&#34;process&#34;`.
         &#34;&#34;&#34;
-        if thread:
-            self.q = ThreadSafeQueue(*args, **kwargs)
-        else:
-            self.q = Queue(*args, **kwargs)
+        if kind == &#34;process&#34;:
+            self._q = Queue()
+        elif kind == &#34;thread&#34;:
+            self._q = ThreadSafeQueue()
+        else:  # pragma: no cover
+            raise ValueError(f&#34;Unknown queue type: {kind}&#34;)
 
     def __getattr__(self, name: str) -&gt; Any:
         &#34;&#34;&#34;Delegate properties to the underlying queue.
@@ -1320,7 +996,7 @@ def sortiter(
         Returns:
             Any: attribute from the queue
         &#34;&#34;&#34;
-        return getattr(self.q, name)
+        return getattr(self._q, name)
 
     def __iter__(self) -&gt; Iterator[Msg]:
         &#34;&#34;&#34;Iterate over messages in a queue until `END_MSG` is received.
@@ -1328,7 +1004,20 @@ def sortiter(
         Yields:
             Iterator[Msg]: iterate over messages in the queue
         &#34;&#34;&#34;
-        return iter_msg(self.q)
+        while True:
+            try:
+                msg = self._q.get(block=True, timeout=self._timeout)
+                if msg.kind == END_MSG.kind:
+                    # We&#39;d really like to put the `END_MSG` back in the queue
+                    # to prevent reading past the end, but in practice
+                    # this often creates an uncatchable `BrokenPipeError`.
+                    # q.put(END_MSG)
+                    break
+                yield msg
+            except Empty:  # pragma: no cover
+                # queue might not actually be empty
+                # see: https://bugs.python.org/issue20147
+                continue
 
     def items(self, cache: bool = False, sort: bool = False) -&gt; Iterator[Msg]:
         &#34;&#34;&#34;End a queue and read all the current messages.
@@ -1345,52 +1034,77 @@ def sortiter(
             Iterator[Msg]: iterate over messages in the queue
         &#34;&#34;&#34;
         if cache:
-            if self._items is None:  # need to build a cache
+            if self._cache is None:  # need to build a cache
                 self.end()
-                self._items = list(self.sorted() if sort else self)
-            return iter(self._items)
+                self._cache = list(self.sorted() if sort else self)
+            return iter(self._cache)
 
         # not cached
         self.end()
         return self.sorted() if sort else iter(self)
 
-    def sorted(self) -&gt; Iterator[Msg]:
-        &#34;&#34;&#34;Iterate over messages in a sorted order.
+    def sorted(self, start: int = 0) -&gt; Iterator[Msg]:
+        &#34;&#34;&#34;Iterate over messages sorted by `Msg.order`.
 
-        See: `ezq.sortiter`
+        NOTE: `Msg.order` must be incremented by one for each message.
+        If there are any gaps, messages after the gap won&#39;t be yielded
+        until the end.
+
+        Args:
+            start (int, optional): initial message number. Defaults to `0`.
 
         Yields:
-            Iterator[Msg]: sorted message iterator
+            Iterator[Msg]: message yielded in the correct order
         &#34;&#34;&#34;
-        return sortiter(self)
+        prev = start - 1
+        key = attrgetter(&#34;order&#34;)
+        waiting: List[Msg] = []
+        for item in self:
+            if not waiting and key(item) == prev + 1:
+                prev += 1
+                yield item
+                continue
 
-    def put(self, data: Any = None, kind: str = &#34;&#34;, order: int = 0) -&gt; Self:
+            # items came out of order
+            waiting.append(item)
+            waiting.sort(key=key, reverse=True)  # sort in-place for performance
+            while waiting and key(waiting[-1]) == prev + 1:
+                prev += 1
+                yield waiting.pop()
+
+        # generator ended; yield any waiting items
+        while waiting:
+            yield waiting.pop()
+
+    def put(self, data: Any = None, *, kind: str = &#34;&#34;, order: int = 0) -&gt; &#34;Q&#34;:
         &#34;&#34;&#34;Put a message on the queue.
 
         Args:
             data (Any, optional): message data. Defaults to `None`.
+
             kind (str, optional): kind of message. Defaults to `&#34;&#34;`.
+
             order (int, optional): message order. Defaults to `0`.
 
         Returns:
             Self: self for chaining
         &#34;&#34;&#34;
         if isinstance(data, Msg):
-            self.q.put_nowait(data)
+            self._q.put(data)
         else:
-            self.q.put_nowait(Msg(data=data, kind=kind, order=order))
+            self._q.put(Msg(data=data, kind=kind, order=order))
         return self
 
-    def end(self) -&gt; Self:
+    def end(self) -&gt; &#34;Q&#34;:
         &#34;&#34;&#34;Add the `END_MSG` to indicate the end of work.
 
         Returns:
             Self: self for chaining
         &#34;&#34;&#34;
-        self.q.put(END_MSG)
+        self._q.put(END_MSG)
         return self
 
-    def stop(self, workers: SomeWorkers) -&gt; Self:
+    def stop(self, workers: Union[Worker, Sequence[Worker]]) -&gt; &#34;Q&#34;:
         &#34;&#34;&#34;Use this queue to notify workers to end and wait for them to join.
 
         Args:
@@ -1399,20 +1113,20 @@ def sortiter(
         Returns:
             Self: self for chaining
         &#34;&#34;&#34;
-        endq_and_wait(self.q, workers)
+        _workers = [workers] if isinstance(workers, Worker) else workers
+
+        for _ in range(len(_workers)):
+            self.end()
+
+        for task in _workers:
+            task.join()
+
         return self</code></pre>
 </details>
-<h3>Class variables</h3>
-<dl>
-<dt id="ezq.Q.q"><code class="name">var <span class="ident">q</span> : <bound method BaseContext.Queue of <multiprocessing.context.DefaultContext object at 0x7fdd10ecba30>></code></dt>
-<dd>
-<div class="desc"><p>Wrapped queue.</p></div>
-</dd>
-</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="ezq.Q.end"><code class="name flex">
-<span>def <span class="ident">end</span></span>(<span>self) ‑> typing_extensions.Self</span>
+<span>def <span class="ident">end</span></span>(<span>self) ‑> <a title="ezq.Q" href="#ezq.Q">Q</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Add the <code><a title="ezq.END_MSG" href="#ezq.END_MSG">END_MSG</a></code> to indicate the end of work.</p>
@@ -1425,13 +1139,13 @@ def sortiter(
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def end(self) -&gt; Self:
+<pre><code class="python">def end(self) -&gt; &#34;Q&#34;:
     &#34;&#34;&#34;Add the `END_MSG` to indicate the end of work.
 
     Returns:
         Self: self for chaining
     &#34;&#34;&#34;
-    self.q.put(END_MSG)
+    self._q.put(END_MSG)
     return self</code></pre>
 </details>
 </dd>
@@ -1474,10 +1188,10 @@ Defaults to <code>False</code>.</dd>
         Iterator[Msg]: iterate over messages in the queue
     &#34;&#34;&#34;
     if cache:
-        if self._items is None:  # need to build a cache
+        if self._cache is None:  # need to build a cache
             self.end()
-            self._items = list(self.sorted() if sort else self)
-        return iter(self._items)
+            self._cache = list(self.sorted() if sort else self)
+        return iter(self._cache)
 
     # not cached
     self.end()
@@ -1485,7 +1199,7 @@ Defaults to <code>False</code>.</dd>
 </details>
 </dd>
 <dt id="ezq.Q.put"><code class="name flex">
-<span>def <span class="ident">put</span></span>(<span>self, data: Any = None, kind: str = '', order: int = 0) ‑> typing_extensions.Self</span>
+<span>def <span class="ident">put</span></span>(<span>self, data: Any = None, *, kind: str = '', order: int = 0) ‑> <a title="ezq.Q" href="#ezq.Q">Q</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Put a message on the queue.</p>
@@ -1507,58 +1221,90 @@ Defaults to <code>False</code>.</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def put(self, data: Any = None, kind: str = &#34;&#34;, order: int = 0) -&gt; Self:
+<pre><code class="python">def put(self, data: Any = None, *, kind: str = &#34;&#34;, order: int = 0) -&gt; &#34;Q&#34;:
     &#34;&#34;&#34;Put a message on the queue.
 
     Args:
         data (Any, optional): message data. Defaults to `None`.
+
         kind (str, optional): kind of message. Defaults to `&#34;&#34;`.
+
         order (int, optional): message order. Defaults to `0`.
 
     Returns:
         Self: self for chaining
     &#34;&#34;&#34;
     if isinstance(data, Msg):
-        self.q.put_nowait(data)
+        self._q.put(data)
     else:
-        self.q.put_nowait(Msg(data=data, kind=kind, order=order))
+        self._q.put(Msg(data=data, kind=kind, order=order))
     return self</code></pre>
 </details>
 </dd>
 <dt id="ezq.Q.sorted"><code class="name flex">
-<span>def <span class="ident">sorted</span></span>(<span>self) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
+<span>def <span class="ident">sorted</span></span>(<span>self, start: int = 0) ‑> Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Iterate over messages in a sorted order.</p>
-<p>See: <code><a title="ezq.sortiter" href="#ezq.sortiter">sortiter()</a></code></p>
+<div class="desc"><p>Iterate over messages sorted by <code><a title="ezq.Msg.order" href="#ezq.Msg.order">Msg.order</a></code>.</p>
+<p>NOTE: <code><a title="ezq.Msg.order" href="#ezq.Msg.order">Msg.order</a></code> must be incremented by one for each message.
+If there are any gaps, messages after the gap won't be yielded
+until the end.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>start</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>initial message number. Defaults to <code>0</code>.</dd>
+</dl>
 <h2 id="yields">Yields</h2>
 <dl>
 <dt><code>Iterator[<a title="ezq.Msg" href="#ezq.Msg">Msg</a>]</code></dt>
-<dd>sorted message iterator</dd>
+<dd>message yielded in the correct order</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def sorted(self) -&gt; Iterator[Msg]:
-    &#34;&#34;&#34;Iterate over messages in a sorted order.
+<pre><code class="python">def sorted(self, start: int = 0) -&gt; Iterator[Msg]:
+    &#34;&#34;&#34;Iterate over messages sorted by `Msg.order`.
 
-    See: `ezq.sortiter`
+    NOTE: `Msg.order` must be incremented by one for each message.
+    If there are any gaps, messages after the gap won&#39;t be yielded
+    until the end.
+
+    Args:
+        start (int, optional): initial message number. Defaults to `0`.
 
     Yields:
-        Iterator[Msg]: sorted message iterator
+        Iterator[Msg]: message yielded in the correct order
     &#34;&#34;&#34;
-    return sortiter(self)</code></pre>
+    prev = start - 1
+    key = attrgetter(&#34;order&#34;)
+    waiting: List[Msg] = []
+    for item in self:
+        if not waiting and key(item) == prev + 1:
+            prev += 1
+            yield item
+            continue
+
+        # items came out of order
+        waiting.append(item)
+        waiting.sort(key=key, reverse=True)  # sort in-place for performance
+        while waiting and key(waiting[-1]) == prev + 1:
+            prev += 1
+            yield waiting.pop()
+
+    # generator ended; yield any waiting items
+    while waiting:
+        yield waiting.pop()</code></pre>
 </details>
 </dd>
 <dt id="ezq.Q.stop"><code class="name flex">
-<span>def <span class="ident">stop</span></span>(<span>self, workers: Union[threading.Thread, multiprocessing.context.Process, Sequence[threading.Thread], Sequence[multiprocessing.context.Process]]) ‑> typing_extensions.Self</span>
+<span>def <span class="ident">stop</span></span>(<span>self, workers: Union[<a title="ezq.Worker" href="#ezq.Worker">Worker</a>, Sequence[<a title="ezq.Worker" href="#ezq.Worker">Worker</a>]]) ‑> <a title="ezq.Q" href="#ezq.Q">Q</a></span>
 </code></dt>
 <dd>
 <div class="desc"><p>Use this queue to notify workers to end and wait for them to join.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>workers</code></strong> :&ensp;<code>Worker, Sequence[Worker]</code></dt>
+<dt><strong><code>workers</code></strong> :&ensp;<code><a title="ezq.Worker" href="#ezq.Worker">Worker</a>, Sequence[<a title="ezq.Worker" href="#ezq.Worker">Worker</a>]</code></dt>
 <dd>workers to wait for</dd>
 </dl>
 <h2 id="returns">Returns</h2>
@@ -1570,7 +1316,7 @@ Defaults to <code>False</code>.</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def stop(self, workers: SomeWorkers) -&gt; Self:
+<pre><code class="python">def stop(self, workers: Union[Worker, Sequence[Worker]]) -&gt; &#34;Q&#34;:
     &#34;&#34;&#34;Use this queue to notify workers to end and wait for them to join.
 
     Args:
@@ -1579,8 +1325,183 @@ Defaults to <code>False</code>.</dd>
     Returns:
         Self: self for chaining
     &#34;&#34;&#34;
-    endq_and_wait(self.q, workers)
+    _workers = [workers] if isinstance(workers, Worker) else workers
+
+    for _ in range(len(_workers)):
+        self.end()
+
+    for task in _workers:
+        task.join()
+
     return self</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="ezq.Worker"><code class="flex name class">
+<span>class <span class="ident">Worker</span></span>
+<span>(</span><span>context: Union[multiprocess.context.Process, threading.Thread])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A function running in a <code>Process</code> or <code>Thread</code>.</p>
+<p>Construct a worker from a context.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>context</code></strong> :&ensp;<code><a title="ezq.Context" href="#ezq.Context">Context</a></code></dt>
+<dd>a <code>Process</code> or a <code>Thread</code></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Worker:
+    &#34;&#34;&#34;A function running in a `Process` or `Thread`.&#34;&#34;&#34;
+
+    _worker: Context
+    &#34;&#34;&#34;Execution context.&#34;&#34;&#34;
+
+    @staticmethod
+    def process(task: Task, *args: Any, **kwargs: Any) -&gt; &#34;Worker&#34;:
+        &#34;&#34;&#34;Create a `Process`-based `Worker`.
+
+        Args:
+            task (Task): function to run
+            *args (Any): additional arguments to `task`
+            **kwargs (Any): additional keyword arguments to `task`
+
+        Returns:
+            Worker: wrapped worker.
+        &#34;&#34;&#34;
+        # NOTE: On MacOS, python 3.8 switched the default method
+        # from &#34;fork&#34; to &#34;spawn&#34; because fork is considered dangerous.
+        # Some posts say &#34;forkserver&#34; should be ok.
+        # See:  https://bugs.python.org/issue?@action=redirect&amp;bpo=33725
+        #
+        # if IS_MACOS:
+        #     ctx = get_context(&#34;forkserver&#34;)
+        # else:
+        #     ctx = get_context()
+        return Worker(Process(daemon=True, target=task, args=args, kwargs=kwargs))
+
+    @staticmethod
+    def thread(task: Task, *args: Any, **kwargs: Any) -&gt; &#34;Worker&#34;:
+        &#34;&#34;&#34;Create a `Thread`-based `Worker`.
+
+        Args:
+            task (Task): function to run
+            *args (Any): additional arguments to `task`
+            **kwargs (Any): additional keyword arguments to `task`
+
+        Returns:
+            Worker: wrapped worker.
+        &#34;&#34;&#34;
+        return Worker(Thread(daemon=False, target=task, args=args, kwargs=kwargs))
+
+    def __init__(self, context: Context):
+        &#34;&#34;&#34;Construct a worker from a context.
+
+        Args:
+            context (Context): a `Process` or a `Thread`
+        &#34;&#34;&#34;
+        self._worker = context
+        self._worker.start()
+
+    def __getattr__(self, name: str) -&gt; Any:
+        &#34;&#34;&#34;Delegate properties to the underlying task.
+
+        Args:
+            name (str): attribute name
+
+        Returns:
+            Any: attribute from the task
+        &#34;&#34;&#34;
+        return getattr(self._worker, name)</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="ezq.Worker.process"><code class="name flex">
+<span>def <span class="ident">process</span></span>(<span>task: Callable[..., Any], *args: Any, **kwargs: Any) ‑> <a title="ezq.Worker" href="#ezq.Worker">Worker</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a <code>Process</code>-based <code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code>.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>task</code></strong> :&ensp;<code><a title="ezq.Task" href="#ezq.Task">Task</a></code></dt>
+<dd>function to run</dd>
+<dt><strong><code>*args</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional arguments to <code>task</code></dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional keyword arguments to <code>task</code></dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code></dt>
+<dd>wrapped worker.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def process(task: Task, *args: Any, **kwargs: Any) -&gt; &#34;Worker&#34;:
+    &#34;&#34;&#34;Create a `Process`-based `Worker`.
+
+    Args:
+        task (Task): function to run
+        *args (Any): additional arguments to `task`
+        **kwargs (Any): additional keyword arguments to `task`
+
+    Returns:
+        Worker: wrapped worker.
+    &#34;&#34;&#34;
+    # NOTE: On MacOS, python 3.8 switched the default method
+    # from &#34;fork&#34; to &#34;spawn&#34; because fork is considered dangerous.
+    # Some posts say &#34;forkserver&#34; should be ok.
+    # See:  https://bugs.python.org/issue?@action=redirect&amp;bpo=33725
+    #
+    # if IS_MACOS:
+    #     ctx = get_context(&#34;forkserver&#34;)
+    # else:
+    #     ctx = get_context()
+    return Worker(Process(daemon=True, target=task, args=args, kwargs=kwargs))</code></pre>
+</details>
+</dd>
+<dt id="ezq.Worker.thread"><code class="name flex">
+<span>def <span class="ident">thread</span></span>(<span>task: Callable[..., Any], *args: Any, **kwargs: Any) ‑> <a title="ezq.Worker" href="#ezq.Worker">Worker</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a <code>Thread</code>-based <code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code>.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>task</code></strong> :&ensp;<code><a title="ezq.Task" href="#ezq.Task">Task</a></code></dt>
+<dd>function to run</dd>
+<dt><strong><code>*args</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional arguments to <code>task</code></dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>Any</code></dt>
+<dd>additional keyword arguments to <code>task</code></dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code></dt>
+<dd>wrapped worker.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def thread(task: Task, *args: Any, **kwargs: Any) -&gt; &#34;Worker&#34;:
+    &#34;&#34;&#34;Create a `Thread`-based `Worker`.
+
+    Args:
+        task (Task): function to run
+        *args (Any): additional arguments to `task`
+        **kwargs (Any): additional keyword arguments to `task`
+
+    Returns:
+        Worker: wrapped worker.
+    &#34;&#34;&#34;
+    return Worker(Thread(daemon=False, target=task, args=args, kwargs=kwargs))</code></pre>
 </details>
 </dd>
 </dl>
@@ -1599,7 +1520,7 @@ Defaults to <code>False</code>.</dd>
 <li><a href="#typical-worker-lifecycle">Typical worker lifecycle</a></li>
 <li><a href="#process-vs-thread">Process vs Thread</a></li>
 <li><a href="#create-queues">Create queues</a></li>
-<li><a href="#a-worker-is-just-a-function">A worker is just a function</a></li>
+<li><a href="#a-worker-task-is-just-a-function">A worker task is just a function</a></li>
 <li><a href="#create-workers">Create workers</a></li>
 <li><a href="#send-data">Send data</a></li>
 <li><a href="#beware-pickle">Beware pickle</a></li>
@@ -1613,24 +1534,22 @@ Defaults to <code>False</code>.</dd>
 </div>
 <ul id="index">
 <li><h3><a href="#header-variables">Global variables</a></h3>
-<ul class="">
+<ul class="two-column">
+<li><code><a title="ezq.Context" href="#ezq.Context">Context</a></code></li>
+<li><code><a title="ezq.ContextName" href="#ezq.ContextName">ContextName</a></code></li>
 <li><code><a title="ezq.END_MSG" href="#ezq.END_MSG">END_MSG</a></code></li>
+<li><code><a title="ezq.IS_MACOS" href="#ezq.IS_MACOS">IS_MACOS</a></code></li>
 <li><code><a title="ezq.NUM_CPUS" href="#ezq.NUM_CPUS">NUM_CPUS</a></code></li>
 <li><code><a title="ezq.NUM_THREADS" href="#ezq.NUM_THREADS">NUM_THREADS</a></code></li>
+<li><code><a title="ezq.Task" href="#ezq.Task">Task</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="two-column">
-<li><code><a title="ezq.Queue" href="#ezq.Queue">Queue</a></code></li>
-<li><code><a title="ezq.endq" href="#ezq.endq">endq</a></code></li>
-<li><code><a title="ezq.endq_and_wait" href="#ezq.endq_and_wait">endq_and_wait</a></code></li>
-<li><code><a title="ezq.iter_msg" href="#ezq.iter_msg">iter_msg</a></code></li>
-<li><code><a title="ezq.iter_q" href="#ezq.iter_q">iter_q</a></code></li>
+<ul class="">
+<li><code><a title="ezq.MsgQ" href="#ezq.MsgQ">MsgQ</a></code></li>
 <li><code><a title="ezq.map" href="#ezq.map">map</a></code></li>
-<li><code><a title="ezq.put_msg" href="#ezq.put_msg">put_msg</a></code></li>
 <li><code><a title="ezq.run" href="#ezq.run">run</a></code></li>
 <li><code><a title="ezq.run_thread" href="#ezq.run_thread">run_thread</a></code></li>
-<li><code><a title="ezq.sortiter" href="#ezq.sortiter">sortiter</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -1645,13 +1564,19 @@ Defaults to <code>False</code>.</dd>
 </li>
 <li>
 <h4><code><a title="ezq.Q" href="#ezq.Q">Q</a></code></h4>
-<ul class="two-column">
+<ul class="">
 <li><code><a title="ezq.Q.end" href="#ezq.Q.end">end</a></code></li>
 <li><code><a title="ezq.Q.items" href="#ezq.Q.items">items</a></code></li>
 <li><code><a title="ezq.Q.put" href="#ezq.Q.put">put</a></code></li>
-<li><code><a title="ezq.Q.q" href="#ezq.Q.q">q</a></code></li>
 <li><code><a title="ezq.Q.sorted" href="#ezq.Q.sorted">sorted</a></code></li>
 <li><code><a title="ezq.Q.stop" href="#ezq.Q.stop">stop</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="ezq.Worker" href="#ezq.Worker">Worker</a></code></h4>
+<ul class="">
+<li><code><a title="ezq.Worker.process" href="#ezq.Worker.process">process</a></code></li>
+<li><code><a title="ezq.Worker.thread" href="#ezq.Worker.thread">thread</a></code></li>
 </ul>
 </li>
 </ul>
