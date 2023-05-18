@@ -3,7 +3,7 @@
 # general
 _ignore*
 _seed.py
-.venv
+.venv*
 *.db
 
 # editors
@@ -17,7 +17,7 @@ _seed.py
 __pycache__
 
 # test
-.coverage
+.coverage*
 .mypy_cache
 .pytest_cache
 .ruff_cache
