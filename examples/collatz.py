@@ -26,7 +26,7 @@ def collatz(q: ezq.Q, out: ezq.Q) -> None:
 
 def main() -> None:
     """Run several threads with a subprocess for printing."""
-    q, out = ezq.Q(thread=True), ezq.Q()
+    q, out = ezq.Q("thread"), ezq.Q()
     readers = [ezq.run_thread(collatz, q, out) for _ in range(ezq.NUM_THREADS)]
     writer = ezq.run(printer, out)
 

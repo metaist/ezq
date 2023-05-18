@@ -22,7 +22,8 @@ def test_iter_q() -> None:
     for _ in range(num):
         q.put(1)
 
-    assert q.qsize() == num, "expect all messages queued"
+    if not ezq.IS_MACOS:
+        assert q.qsize() == num, "expect all messages queued"
 
     total = sum(msg.data for msg in q.items())
     assert num == total, "expect iterator to get all messages"
@@ -31,20 +32,29 @@ def test_iter_q() -> None:
 def test_sortiter_sorted_list() -> None:
     """Sort a list of sorted numbers."""
     num = 1000
-    order = list(range(num))
-    want = order.copy()
-    have = list(ezq.sortiter(order, key=ident))
+    want = list(range(num))
+
+    q = ezq.Q()
+    for num in range(num):
+        q.put(order=num)
+
+    have = [msg.order for msg in q.end().sorted()]
     assert want == have, "expected numbers in order"
 
 
 def test_sortiter_random_list() -> None:
     """Sort a list of numbers."""
     num = 1000
-    order = list(range(num))
-    want = order.copy()
-    random.shuffle(order)
+    want = list(range(num))
 
-    have = list(ezq.sortiter(order, key=ident))
+    temp = want.copy()
+    random.shuffle(temp)
+
+    q = ezq.Q()
+    for num in temp:
+        q.put(order=num)  # sending things out of order
+
+    have = [msg.order for msg in q.items(sort=True)]
     assert want == have, "expected numbers in order"
 
 

@@ -4,6 +4,7 @@ _Simple wrappers for python multiprocessing and threading._
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/metaist/ezq/.github/workflows/ci.yaml?branch=main&style=for-the-badge)](https://github.com/metaist/ezq/actions)
 [![ezq on PyPI](https://img.shields.io/pypi/v/ezq.svg?color=blue&style=for-the-badge)](https://pypi.org/project/ezq)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/ezq?style=for-the-badge)](https://pypi.org/project/ezq)
 
 [Changelog] - [Issues] - [Documentation]
 
@@ -83,7 +84,7 @@ if __name__ == "__main__":
 
 - The main process [creates queues](#create-queues) with `ezq.Q`.
 
-- The main process [creates workers](#create-workers) with `ezq.run` or `ezq.run_thread`.
+- The main process [creates workers](#create-workers) with `ezq.run` (alias for `Worker.process`) or `ezq.run_thread` (alias for `Worker.thread`).
 
 - The main process [sends data](#send-data) using `Q.put`.
 
@@ -105,7 +106,7 @@ if __name__ == "__main__":
 
 Some more differences:
 
-- **Shared memory**: Each `Process` worker has [data sent to it via `pickle`](#beware-pickle) and it doesn't share data with other workers. By contrast, each `Thread` worker shares its memory with all other workers on the same CPU, so it can [accidentally change global state](#beware-shared-state).
+- **Shared memory**: Each `Process` worker has [data sent to it via `pickle`](#beware-pickle) (actually [`dill`](https://github.com/uqfoundation/dill), a `pickle` replacement) and it doesn't share data with other workers. By contrast, each `Thread` worker shares its memory with all other workers on the same CPU, so it can [accidentally change global state](#beware-shared-state).
 
 - **Queue overhead**: `ezq.Q` [has more overhead](#create-queues) for `Process` workers than `Thread` workers.
 
@@ -123,14 +124,14 @@ In the main process, create the queues you'll need. Here are my common situation
 
 - **3 queues**: multiple stages of work are happening where workers are reading from one queue and writing to another queue for another worker to process.
 
-**NOTE:** If you're using `Thread` workers, you can save some overhead by passing `thread=True`. This lightweight queue also doesn't use `pickle`, so you can use it to pass hard-to-pickle things (e.g., `lambda`).
+**NOTE:** If you're using `Thread` workers, you can save some overhead by passing `Q("thread")`. This lightweight queue also doesn't use `pickle`, so you can use it to pass hard-to-pickle things (e.g., database connection).
 
 ```python
 q, out = ezq.Q(), ezq.Q() # most common
-q2 = ez.Q(thread=True) # only ok for Thread workers
+q2 = ez.Q("thread") # only ok for Thread workers
 ```
 
-## A worker is just a function
+## A worker task is just a function
 
 In general, there's nothing special about a worker function, but note:
 
@@ -156,7 +157,7 @@ Once you've created the workers, you send them data with `Q.put` which creates `
 
 ## Beware `pickle`
 
-If you are using `Process` workers, everything passed to the worker (arguments, messages) is first passed to `pickle` by [`multiprocessing`][1]. Anything that cannot be pickled (e.g., `lambda` functions, database connections), cannot be passed to `Process` workers.
+If you are using `Process` workers, everything passed to the worker (arguments, messages) is first passed to `pickle` (actually, [`dill`](https://github.com/uqfoundation/dill)). Anything that cannot be pickled with dill (e.g., database connections), cannot be passed to `Process` workers. Note that `dill` _can_ serialize many more types than `pickle` (e.g. `lambda` functions).
 
 ## Beware shared state
 
@@ -224,7 +225,7 @@ def collatz(q: ezq.Q, out: ezq.Q) -> None:
 
 def main() -> None:
     """Run several threads with a subprocess for printing."""
-    q, out = ezq.Q(thread=True), ezq.Q()
+    q, out = ezq.Q("thread"), ezq.Q()
     readers = [ezq.run_thread(collatz, q, out) for _ in range(ezq.NUM_THREADS)]
     writer = ezq.run(printer, out)
 
