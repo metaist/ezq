@@ -13,7 +13,7 @@ def worker_thread(q: ezq.Q, out: ezq.Q) -> None:
 
 def worker_process(q: ezq.Q, out: ezq.Q) -> None:
     """Break a word apart into letters."""
-    q2 = ezq.Q(thread=True)
+    q2 = ezq.Q("thread")
     threads = [ezq.run_thread(worker_thread, q2, out) for _ in range(10)]
     for msg in q:
         for letter in msg.data:
