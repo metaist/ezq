@@ -36,8 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install black mypy pdoc3 pytest pytest-cov ruff
-          pip install multiprocess
+          pip install -e .[dev]
 
       - name: Format with black
         run: |

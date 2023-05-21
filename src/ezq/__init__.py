@@ -7,13 +7,6 @@
 """
 
 __all__ = (
-    "__author__",
-    "__copyright__",
-    "__email__",
-    "__license__",
-    "__pubdate__",
-    "__url__",
-    "__version__",
     "Task",
     "Context",
     "ContextName",
@@ -52,15 +45,6 @@ from typing import Union
 # lib
 from multiprocess import Process  # type: ignore
 from multiprocess import Queue
-
-# pkg
-from .__about__ import __author__
-from .__about__ import __copyright__
-from .__about__ import __email__
-from .__about__ import __license__
-from .__about__ import __pubdate__
-from .__about__ import __url__
-from .__about__ import __version__
 
 Task = Callable[..., Any]
 """Task function signature (any `Callable`)."""
