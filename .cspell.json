@@ -2,11 +2,16 @@
   "version": "0.2",
   "language": "en",
   "words": [
+    "Collatz",
+    "CPUS",
+    "endq",
     "multiprocess",
     "mypy",
     "pdoc",
     "pytest",
     "PYTHONPATH",
-    "setuptools"
+    "setuptools",
+    "sortiter",
+    "uncatchable"
   ]
 }
