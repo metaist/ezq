@@ -44,7 +44,7 @@ Sections order is: `Fixed`, `Changed`, `Added`, `Deprecated`, `Removed`, `Securi
 ## Update docs
 
 ```bash
-pdoc --html --output-dir docs --force src/*
+pdoc --html --output-dir docs --force src/$(basename $(pwd))
 mv docs/*/* docs/
 ```
 
@@ -52,7 +52,6 @@ mv docs/*/* docs/
 
 ```bash
 python -c "from setuptools import setup; setup()" build
-twine check dist/*
 ```
 
 ## Commit & Push

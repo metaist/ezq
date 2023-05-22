@@ -7,7 +7,7 @@ where = ["src"]
 
 [project]
 name = "ezq"
-version = "3.0.2"
+version = "3.0.3"
 description = "Simple wrapper for python multiprocessing and threading."
 keywords = ["queue", "worker", "multiprocessing", "threading"]
 requires-python = ">=3.8"
