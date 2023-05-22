@@ -19,6 +19,23 @@ These are changes that are on `main` that are not yet in `prod`.
 
 ---
 
+[#10]: https://github.com/metaist/ezq/issues/10
+[3.0.1]: https://github.com/metaist/ezq/compare/3.0.0...3.0.1
+
+## [3.0.1] - 2023-05-22T00:39:34Z
+
+**Fixed**
+
+- [#10]: `multiprocess` dependency
+
+**Removed**
+
+- `setup.py`, `__about__.py`: project metadata now in `pyproject.toml`
+- `.pylint`: now using `ruff`
+- `__init__.py`: now just `src/ezq.py`
+
+---
+
 [#5]: https://github.com/metaist/ezq/issues/5
 [#7]: https://github.com/metaist/ezq/issues/7
 [#8]: https://github.com/metaist/ezq/issues/8
