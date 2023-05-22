@@ -19,6 +19,16 @@ These are changes that are on `main` that are not yet in `prod`.
 
 ---
 
+[3.0.3]: https://github.com/metaist/ezq/compare/3.0.2...3.0.3
+
+## [3.0.3] - 2023-05-22T02:30:15Z
+
+**Fixed**
+
+- GitHub CI command to build docs
+
+---
+
 [3.0.2]: https://github.com/metaist/ezq/compare/3.0.1...3.0.2
 
 ## [3.0.2] - 2023-05-22T01:57:42Z

@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -e .[dev]
+          pip install -e ".[dev]"
 
       - name: Format with black
         run: |
@@ -56,5 +56,5 @@ jobs:
 
       - name: Build docs
         run: |
-          pdoc --html --output-dir docs --force src/*
+          pdoc --html --output-dir docs --force src/$(basename $(pwd))
           mv docs/*/* docs/
