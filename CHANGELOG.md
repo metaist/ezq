@@ -19,6 +19,16 @@ These are changes that are on `main` that are not yet in `prod`.
 
 ---
 
+[3.0.2]: https://github.com/metaist/ezq/compare/3.0.1...3.0.2
+
+## [3.0.2] - 2023-05-22T01:57:42Z
+
+**Fixed**
+
+- `src` file structure
+
+---
+
 [#10]: https://github.com/metaist/ezq/issues/10
 [3.0.1]: https://github.com/metaist/ezq/compare/3.0.0...3.0.1
 

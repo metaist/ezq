@@ -57,4 +57,4 @@ jobs:
       - name: Build docs
         run: |
           pdoc --html --output-dir docs --force src/*
-          mv docs/*/index.html docs/index.html
+          mv docs/*/* docs/
