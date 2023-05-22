@@ -9,28 +9,12 @@ git checkout prod
 git merge --no-ff --no-edit main
 ```
 
-## Update `__about__.py`
+## Update `pyproject.toml`
 
-Get the current UTC date+time:
+Update:
 
-```bash
-python -c"from datetime import datetime; print(datetime.utcnow().isoformat()[:19] + 'Z')"
-```
-
-Update `__about__.py` with the correct values:
-
-```python
-__version__ = "<<NEW VERSION>>"
-__pubdate__ = "<<DATE+TIME IN UTC>>"
-```
-
-Take the time to also update the `__copyright__` line, if needed.
-
-Example:
-
-```python
-__version__ = "2.0.3"
-__pubdate__ = "2023-05-10T03:44:41Z"
+```toml
+version = "3.0.1"
 ```
 
 ## Update `CHANGELOG.md`
@@ -39,11 +23,9 @@ Sections order is: `Fixed`, `Changed`, `Added`, `Deprecated`, `Removed`, `Securi
 
 ```text
 ---
-[2.0.3]: https://github.com/metaist/ezq/compare/2.0.2...2.0.3
+[3.0.1]: https://github.com/metaist/ezq/compare/3.0.0...3.0.1
 
-## [2.0.3] - 2023-05-10T03:45:10Z
-
-
+## [3.0.1] - 2023-05-22T00:39:34Z
 
 **Fixed**
 
@@ -69,15 +51,15 @@ mv docs/ezq/* docs/
 ## Check build
 
 ```bash
-python setup.py build
+python -c "from setuptools import setup; setup()" build
 twine check dist/*
 ```
 
 ## Commit & Push
 
 ```bash
-git commit -am "release: 2.0.3"
-git tag 2.0.3
+git commit -am "release: 3.0.1"
+git tag 3.0.1
 git push
 git push --tags
 git checkout main
