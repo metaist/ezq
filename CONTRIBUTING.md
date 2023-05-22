@@ -44,8 +44,8 @@ Sections order is: `Fixed`, `Changed`, `Added`, `Deprecated`, `Removed`, `Securi
 ## Update docs
 
 ```bash
-pdoc --html --output-dir docs --force src/ezq
-mv docs/ezq/* docs/
+pdoc --html --output-dir docs --force src/*
+mv docs/*/* docs/
 ```
 
 ## Check build
