@@ -251,13 +251,6 @@ if __name__ == &quot;__main__&quot;:
 &#34;&#34;&#34;
 
 __all__ = (
-    &#34;__author__&#34;,
-    &#34;__copyright__&#34;,
-    &#34;__email__&#34;,
-    &#34;__license__&#34;,
-    &#34;__pubdate__&#34;,
-    &#34;__url__&#34;,
-    &#34;__version__&#34;,
     &#34;Task&#34;,
     &#34;Context&#34;,
     &#34;ContextName&#34;,
@@ -296,15 +289,6 @@ from typing import Union
 # lib
 from multiprocess import Process  # type: ignore
 from multiprocess import Queue
-
-# pkg
-from .__about__ import __author__
-from .__about__ import __copyright__
-from .__about__ import __email__
-from .__about__ import __license__
-from .__about__ import __pubdate__
-from .__about__ import __url__
-from .__about__ import __version__
 
 Task = Callable[..., Any]
 &#34;&#34;&#34;Task function signature (any `Callable`).&#34;&#34;&#34;
