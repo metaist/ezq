@@ -4,14 +4,20 @@
   "words": [
     "Collatz",
     "CPUS",
+    "elif",
     "endq",
+    "Metaist",
     "multiprocess",
     "mypy",
     "pdoc",
+    "pylint",
+    "pyproject",
     "pytest",
     "PYTHONPATH",
     "setuptools",
+    "SIGINT",
     "sortiter",
+    "sortq",
     "uncatchable"
   ]
 }
