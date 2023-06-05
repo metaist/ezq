@@ -23,7 +23,7 @@ _Simple wrappers for python multiprocessing and threading._
 ## Install
 
 ```bash
-pip install ezq
+python -m pip install ezq
 ```
 
 ## Example: Quick Start
