@@ -26,6 +26,7 @@ def main() -> None:
     q, out = ezq.Q(), ezq.Q()
     workers = [ezq.run(worker_process, q, out) for _ in range(ezq.NUM_CPUS)]
 
+    # spell-checker: disable
     data = """
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam in semper
         tortor, ac maximus magna. Sed quis rhoncus nulla. Vestibulum at felis dolor.
@@ -36,6 +37,8 @@ def main() -> None:
         ultricies risus ligula convallis risus. Cras volutpat ipsum neque, nec finibus
         lacus interdum vitae. Aliquam erat volutpat.
     """
+    # spell-checker: enable
+
     for word in data.split(" "):
         q.put(word)
     q.stop(workers)
