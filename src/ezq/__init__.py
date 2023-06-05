@@ -1,27 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Simple wrapper for python `multiprocessing` and `threading`.
 
 .. include:: ../../README.md
    :start-line: 4
 """
-
-__all__ = (
-    "Task",
-    "Context",
-    "ContextName",
-    "Msg",
-    "END_MSG",
-    "MsgQ",
-    "NUM_CPUS",
-    "NUM_THREADS",
-    "IS_MACOS",
-    "Worker",
-    "Q",
-    "run",
-    "run_thread",
-    "map",
-)
 
 # native
 from dataclasses import dataclass
@@ -45,6 +26,26 @@ from typing import Union
 # lib
 from multiprocess import Process  # type: ignore
 from multiprocess import Queue
+
+__all__ = (
+    "__version__",
+    "Task",
+    "Context",
+    "ContextName",
+    "Msg",
+    "END_MSG",
+    "MsgQ",
+    "NUM_CPUS",
+    "NUM_THREADS",
+    "IS_MACOS",
+    "Worker",
+    "Q",
+    "run",
+    "run_thread",
+    "map",
+)
+
+__version__ = "3.0.3"
 
 Task = Callable[..., Any]
 """Task function signature (any `Callable`)."""
