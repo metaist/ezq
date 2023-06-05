@@ -5,18 +5,31 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+ezq = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = { attr = "ezq.__version__" }
+
+[project.urls]
+Homepage = "https://github.com/metaist/ezq"
+Documentation = "https://metaist.github.io/ezq/"
+Repository = "https://github.com/metaist/ezq.git"
+Changelog = "https://github.com/metaist/ezq/blob/main/CHANGELOG.md"
+
 [project]
 name = "ezq"
-version = "3.0.3"
 description = "Simple wrapper for python multiprocessing and threading."
 keywords = ["queue", "worker", "multiprocessing", "threading"]
+
+dynamic = ["version"]
 requires-python = ">=3.8"
 dependencies = [
-  # library dependencies support a range
+  # lib => pinned range
   "multiprocess~=0.70.14",
 ]
 optional-dependencies = { dev = [
-  # dev dependencies are latest
+  # dev => latest
   "black",
   "coverage",
   "mypy",
@@ -41,10 +54,6 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
 ]
-
-[project.urls]
-Homepage = "https://github.com/metaist/ezq"
-Documentation = "https://metaist.github.io/ezq/"
-Repository = "https://github.com/metaist/ezq.git"
-Changelog = "https://github.com/metaist/ezq/blob/main/CHANGELOG.md"
