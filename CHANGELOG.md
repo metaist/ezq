@@ -19,6 +19,17 @@ These are changes that are on `main` that are not yet in `prod`.
 
 ---
 
+[#12]: https://github.com/metaist/ezq/issues/12
+[3.0.4]: https://github.com/metaist/ezq/compare/3.0.3...3.0.4
+
+## [3.0.4] - 2023-06-05T03:11:37Z
+
+**Fixed**
+
+- [#12]: add `py.typed`
+
+---
+
 [3.0.3]: https://github.com/metaist/ezq/compare/3.0.2...3.0.3
 
 ## [3.0.3] - 2023-05-22T02:30:15Z
