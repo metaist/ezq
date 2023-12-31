@@ -2,7 +2,7 @@
 # coding: utf-8
 """Test ezq functions."""
 
-# native
+# std
 import operator
 from typing import Callable
 
@@ -16,8 +16,7 @@ def test_q_wrapper() -> None:
     q.put(1)
     q.put(ezq.Msg(data=2))
 
-    if not ezq.IS_MACOS:
-        assert q.qsize() == 2, "expected function to be delegated to queue"
+    assert q.qsize() == 2, "expected function to be delegated to queue"
 
     want = [1, 2]
     have = [msg.data for msg in q.items(cache=True)]
@@ -99,5 +98,5 @@ def test_map() -> None:
     have = list(ezq.map(operator.add, left, right))
     assert have == want, "expected subprocesses to work"
 
-    # have = list(ezq.map(operator.add, left, right, kind="thread"))
-    # assert have == want, "expected threads to work"
+    have = list(ezq.map(operator.add, left, right, kind="thread"))
+    assert have == want, "expected threads to work"
