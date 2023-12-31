@@ -1,10 +1,10 @@
 """Simple wrapper for python `multiprocessing` and `threading`.
 
 .. include:: ../../README.md
-   :start-line: 4
+   :start-line: 2
 """
 
-# native
+# std
 from dataclasses import dataclass
 from operator import attrgetter
 from os import cpu_count

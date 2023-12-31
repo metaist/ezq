@@ -1,16 +1,14 @@
-# ezq
+# ezq: basic multiprocessing and threading
 
-_Simple wrappers for python multiprocessing and threading._
-
-[![Build Status](https://img.shields.io/github/actions/workflow/status/metaist/ezq/.github/workflows/ci.yaml?branch=main&style=for-the-badge)](https://github.com/metaist/ezq/actions)
-[![ezq on PyPI](https://img.shields.io/pypi/v/ezq.svg?color=blue&style=for-the-badge)](https://pypi.org/project/ezq)
-[![Supported Python versions](https://img.shields.io/pypi/pyversions/ezq?style=for-the-badge)](https://pypi.org/project/ezq)
-
-[Changelog] - [Issues] - [Documentation]
-
-[changelog]: https://github.com/metaist/ezq/blob/main/CHANGELOG.md
-[issues]: https://github.com/metaist/ezq/issues
-[documentation]: https://metaist.github.io/ezq/
+<p align="center">
+  <a href="https://metaist.github.io/ezq/"><img alt="Octavia the Octopus" width="200" src="https://raw.githubusercontent.com/metaist/ezq/main/octavia-the-octopus.png" /></a><br />
+  <em>Octavia the Octopus</em>
+</p>
+<p align="center">
+  <a href="https://github.com/metaist/ezq/actions/workflows/ci.yaml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/metaist/ezq/.github/workflows/ci.yaml?branch=main&logo=github"/></a>
+  <a href="https://pypi.org/project/ezq"><img alt="PyPI" src="https://img.shields.io/pypi/v/ezq.svg?color=blue" /></a>
+  <a href="https://pypi.org/project/ezq"><img alt="Supported Python Versions" src="https://img.shields.io/pypi/pyversions/ezq" /></a>
+</p>
 
 ## Why?
 
