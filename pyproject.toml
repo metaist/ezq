@@ -19,7 +19,7 @@ Changelog = "https://github.com/metaist/ezq/blob/main/CHANGELOG.md"
 
 [project]
 name = "ezq"
-description = "Simple wrapper for python multiprocessing and threading."
+description = "Basic multiprocessing and threading."
 keywords = ["queue", "worker", "multiprocessing", "threading"]
 
 dynamic = ["version"]
@@ -33,9 +33,11 @@ optional-dependencies = { dev = [
   "black",
   "coverage",
   "mypy",
+  "pdm",
   "pdoc3",
-  "pytest",
+  "pyright",
   "pytest-cov",
+  "pytest",
   "ruff",
 ] }
 readme = "README.md"
@@ -54,6 +56,7 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Software Development :: Libraries",
   "Typing :: Typed",
 ]
@@ -62,6 +65,7 @@ classifiers = [
 black = { shell = "black ." }
 ruff = { shell = "ruff ." }
 cspell = { shell = "cspell --gitignore '**/*.{py,txt,md,markdown}'" }
+pyright = { shell = "pyright src test" }
 
 mypy = { shell = """\
   mypy \
@@ -90,8 +94,9 @@ docs = { shell = """\
     --config show_inherited_members=True \
     --force src/$(basename $(pwd));
   mv docs/**/* docs/
+  touch docs/.nojekyll
 """ }
 
-lint = { composite = ["black", "ruff", "cspell", "mypy"] }
+lint = { composite = ["black", "ruff", "cspell", "pyright", "mypy"] }
 dev = { composite = ["lint", "test"] }
 all = { composite = ["lint", "test", "docs"] }

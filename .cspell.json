@@ -11,13 +11,17 @@
     "mypy",
     "pdoc",
     "pylint",
+    "pypa",
+    "pypi",
     "pyproject",
+    "pyright",
     "pytest",
     "PYTHONPATH",
     "setuptools",
     "SIGINT",
     "sortiter",
     "sortq",
-    "uncatchable"
+    "uncatchable",
+    "venv"
   ]
 }

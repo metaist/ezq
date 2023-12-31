@@ -1,31 +1,56 @@
 # Contributing
 
-This document describes the process of making a release.
+## Local Development
 
-## Checkout `prod`
+```bash
+# get the code
+git clone git@github.com:metaist/ezq.git
+cd ezq
+
+# create a virtual environment
+python -m venv .venv --prompt ezq
+. .venv/bin/activate
+pip install --upgrade pip
+
+# install dependencies and dev tools
+pip install -e ".[dev]"
+pnpm install -g cspell
+```
+
+As you work on the code, you should periodically run:
+
+```bash
+pdm lint  # for type checks
+pdm test  # for unit tests
+```
+
+This repo generally tries to maintain type-correctness (via `mypy` and `pyright`) and complete unit test coverage.
+
+## Making a Release
+
+Checkout `prod`:
 
 ```bash
 git checkout prod
 git merge --no-ff --no-edit main
 ```
 
-## Update `pyproject.toml`
+Update top-most `__init__.py`:
 
-Update:
-
-```toml
-version = "3.0.1"
+```python
+__version__ = "X.0.1"
 ```
 
-## Update `CHANGELOG.md`
+Update `CHANGELOG.md`:
 
 Sections order is: `Fixed`, `Changed`, `Added`, `Deprecated`, `Removed`, `Security`.
 
-```text
+```markdown
 ---
-[3.0.1]: https://github.com/metaist/ezq/compare/3.0.0...3.0.1
 
-## [3.0.1] - 2023-05-22T00:39:34Z
+[X.0.1]: https://github.com/metaist/ezq/compare/X.0.0...X.0.1
+
+## [X.0.1] - XXXX-XX-XXT00:00:00Z
 
 **Fixed**
 
@@ -38,27 +63,22 @@ Sections order is: `Fixed`, `Changed`, `Added`, `Deprecated`, `Removed`, `Securi
 **Removed**
 
 **Security**
-
 ```
 
-## Update docs
+###
 
 ```bash
-pdoc --html --output-dir docs --force src/$(basename $(pwd))
-mv docs/*/* docs/
-```
+export VER="X.0.1"
 
-## Check build
+# update docs
+pdm docs
 
-```bash
-python -c "from setuptools import setup; setup()" build
-```
+# check build
+pip install -e .
 
-## Commit & Push
-
-```bash
-git commit -am "release: 3.0.1"
-git tag 3.0.1
+# commit and push tags
+git commit -am "release: $VER"
+git tag $VER
 git push
 git push --tags
 git checkout main
@@ -66,6 +86,4 @@ git merge --no-ff --no-edit prod
 git push
 ```
 
-## Create Release
-
-Visit: https://github.com/metaist/ezq/releases/new
+[Create the release on GitHub](https://github.com/metaist/ezq/releases/new). The `pypi.yaml` workflow will attempt to publish it to PyPI.
