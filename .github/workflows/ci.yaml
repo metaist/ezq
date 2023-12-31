@@ -10,51 +10,48 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
-
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up caches
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-py${{ matrix.python-version }}
-
-      - name: Checkout repo
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 3
-
-      - name: Fetch tags
-        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -e ".[dev]"
 
-      - name: Format with black
+      - name: Format (black)
         run: |
-          black .
+          pdm run black
 
-      - name: Lint with ruff
+      - name: Lint (ruff)
         run: |
-          ruff .
+          pdm run ruff
 
-      - name: Static type check with mypy
+      - name: Type check (mypy)
         run: |
-          mypy --verbose --strict --install-types --non-interactive src test examples
+          pdm run mypy
 
-      - name: Test with pytest
+      # - name: Type check (pyright)
+      #   run: |
+      #     pdm run pyright
+
+      - name: Run tests
         run: |
-          PYTHONPATH=src pytest --cov=src test --cov-branch
+          pdm run test
 
       - name: Build docs
         run: |
-          pdoc --html --output-dir docs --force src/$(basename $(pwd))
-          mv docs/*/* docs/
+          pdm run docs
