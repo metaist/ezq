@@ -23,7 +23,7 @@ description = "Basic multiprocessing and threading."
 keywords = ["queue", "worker", "multiprocessing", "threading"]
 
 dynamic = ["version"]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
   # lib => pinned range
   "multiprocess~=0.70.14",
@@ -60,6 +60,10 @@ classifiers = [
   "Typing :: Typed",
 ]
 
+[tool.hatch.envs.test.scripts]
+run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
+run = "run-coverage --no-cov"
+
 [tool.pdm.scripts]
 black = { shell = "black ." }
 ruff = { shell = "ruff ." }
@@ -92,7 +96,7 @@ docs = { shell = """\
     --config sort_identifiers=False \
     --config show_inherited_members=True \
     --force src/$(basename $(pwd));
-  mv docs/**/* docs/
+  mv docs/**/* docs/;
   touch docs/.nojekyll
 """ }
 
