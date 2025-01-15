@@ -73,7 +73,6 @@ class Msg:
 
 # NOTE: The python `queue.Queue` is not properly a generic.
 # See: https://stackoverflow.com/a/48554601
-# TODO [2024-10-14]: @ py3.8 EOL remove this conditional
 if TYPE_CHECKING:  # pragma: no cover
     MsgQ = Union[Queue[Msg], ThreadSafeQueue[Msg]]
 else:
